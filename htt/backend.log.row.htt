@@ -1,0 +1,7 @@
+<tr class="{$flipflop}">
+  <td class="wsl_id">{$id}</td>
+  <td class="wsl_category">{$category}</td>
+  <td class="wsl_group">{$group}</td>
+  <td class="wsl_desc">{$description}</td>
+  <td class="wsl_timestamp">{$timestamp}</td>
+</tr>
