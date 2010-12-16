@@ -8,12 +8,14 @@
  * @copyright 2010
  * @license GNU GPL (http://www.gnu.org/licenses/gpl.html)
  * @version $Id$
+ * 
+ * FOR VERSION- AND RELEASE NOTES PLEASE LOOK AT INFO.TXT!
  */
 
 $module_directory     = 'watch_site';
 $module_name          = 'dbWatchSite';
 $module_function      = 'tool';
-$module_version       = '0.10';
+$module_version       = '0.11';
 $module_status        = 'Beta';
 $module_platform      = '2.8';
 $module_author        = 'Ralf Hertsch, Berlin (Germany)';

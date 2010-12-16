@@ -23,7 +23,8 @@ class dbCronjobData extends dbConnectLE {
 	const field_timestamp				= 'cj_timestamp';
 
 	const item_last_call				= 'last_call';
-	const item_last_job					= 'last_job';
+	const item_last_report			= 'last_report';
+	const item_next_report			= 'next_report';
 	
 	public $create_tables = false;
 	

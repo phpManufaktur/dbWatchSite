@@ -15,10 +15,11 @@ if (!defined('WB_PATH')) die('invalid call of '.$_SERVER['SCRIPT_NAME']);
 
 require_once(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/class.watchsite.php');
 require_once(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/class.cronjob.php');
+require_once(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/class.config.php');
 
 global $admin;
 
-$tables = array('dbWatchSiteDirectory', 'dbWatchSiteFiles', 'dbWatchSiteLog', 'dbCronjobData', 'dbCronjobErrorLog');
+$tables = array('dbWatchSiteCfg', 'dbWatchSiteDirectory', 'dbWatchSiteFiles', 'dbWatchSiteLog', 'dbCronjobData', 'dbCronjobErrorLog');
 $error = '';
 
 foreach ($tables as $table) {

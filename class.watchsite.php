@@ -106,11 +106,13 @@ class dbWatchSiteLog extends dbConnectLE {
 	const group_directory		= 'directory';
 	const group_file				= 'file';
 	const group_cronjob			= 'cronjob';
+	const group_report			= 'report';
 	
 	public $group_array = array(
 		self::group_directory			=> ws_group_directory,
 		self::group_file					=> ws_group_file,
-		self::group_cronjob				=> ws_group_cronjob
+		self::group_cronjob				=> ws_group_cronjob,
+		self::group_report				=> ws_group_report
 	);
 	
 	public function __construct($createTables = false) {

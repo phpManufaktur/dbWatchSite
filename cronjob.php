@@ -18,6 +18,7 @@ if (!defined('WB_PATH')) die('invalid call of '.$_SERVER['SCRIPT_NAME']);
 
 require_once(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/initialize.php');
 require_once(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/class.cronjob.php');
+require_once(WB_PATH.'/framework/class.wb.php');
 
 global $dbLog;
 global $dbWScfg;
@@ -26,6 +27,7 @@ global $dbFile;
 global $dbCronjobData;
 global $dbCronjobErrorLog;
 global $wsTools;
+global $wb;
 
 if (!is_object($dbLog)) $dbLog = new dbWatchSiteLog();
 if (!is_object($dbWScfg)) $dbWScfg = new dbWatchSiteCfg();
@@ -34,6 +36,7 @@ if (!is_object($dbFile)) $dbFile = new dbWatchSiteFiles();
 if (!is_object($dbCronjobData)) $dbCronjobData = new dbCronjobData(true);
 if (!is_object($dbCronjobErrorLog)) $dbCronjobErrorLog = new dbCronjobErrorLog(true);
 if (!is_object($wsTools)) $wsTools = new wsTools();
+if (!is_object($wb)) $wb = new wb();
 
 $cronjob = new cronjob();
 $cronjob->action();
@@ -78,6 +81,10 @@ class cronjob {
 		global $wsTools;
 		global $dbLog;
 		
+		if ($dbWScfg->getValue(dbWatchSiteCfg::cfgWatchSiteActive) == false) {
+			// dbWatchSite is inactive so leave the scripe immediate...
+			exit(0);
+		}
 		// Log access to cronjob...
 		$where = array(dbCronjobData::field_item => dbCronjobData::item_last_call);
 		$data = array();
@@ -88,7 +95,9 @@ class cronjob {
 		if (count($data) < 1) {
 			// entry does not exists, create default entries...
 			$datas = array(	array(dbCronjobData::field_item => dbCronjobData::item_last_call, dbCronjobData::field_value => ''), 
-							 array(dbCronjobData::field_item => dbCronjobData::item_last_job, dbCronjobData::field_value => ''));
+							 				array(dbCronjobData::field_item => dbCronjobData::item_last_report, dbCronjobData::field_value => ''),
+							 				array(dbCronjobData::field_item => dbCronjobData::item_next_report, dbCronjobData::field_value => '')
+							 				);
 			foreach ($datas as $data) {
 				if (!$dbCronjobData->sqlInsertRecord($data)) {
 					$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbCronjobData->getError()));
@@ -113,17 +122,23 @@ class cronjob {
 		if (!isset($_REQUEST[self::request_key]) || ($_REQUEST[self::request_key] !== $cronjob_key)) {
 			// Cronjob key does not match, log denied access...
 			$ip = (isset($_SERVER['SERVER_ADDR'])) ? $_SERVER['SERVER_ADDR'] : '000.000.000.000';
-			$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, sprintf('Access denied from IP %s: invalid or missing cronjob key!', $ip)));
+			$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, sprintf(ws_error_cron_key_invalid, $ip)));
 			// dont give attacker any hint, so exit with regular code...
 			exit(0);
 		}
 		
 		// Exec the watch job...
-		$this->execWatchJob(); 
+		$this->execWatchJob();
+		// check index files
+		$this->checkIndexFiles(); 
+		// sending report?
+		$this->sendReport();
 		// Job beendet, Ausfuehrungszeit festhalten
-		$info = ws_log_info_cronjob_finished;
-		$desc = sprintf(ws_log_desc_cronjob_finished, (time(true) - $this->start_script));
-		$this->addLogEntry(dbWatchSiteLog::category_info, dbWatchSiteLog::group_cronjob, $info, $desc);
+		if ($dbWScfg->getValue(dbWatchSiteCfg::cfgLogCronjobExecTime)) {
+			$info = ws_log_info_cronjob_finished;
+			$desc = sprintf(ws_log_desc_cronjob_finished, (time(true) - $this->start_script));
+			$this->addLogEntry(dbWatchSiteLog::category_info, dbWatchSiteLog::group_cronjob, $info, $desc);
+		}
 		exit(0);
 	} // action()
 	
@@ -299,7 +314,6 @@ class cronjob {
 		$dir = dir($directory);
     while (false !== ($entry = $dir->read())) {
       if (($entry !== '.') && ($entry !== '..') && is_dir($directory.$entry)) {
-        //$this->dirTree[] = str_replace(WB_PATH, '', $directory.$entry.'/');
         $this->dirTree[] = substr($directory.$entry.'/', strlen(WB_PATH));
         $this->getDirectoryTree($directory.$entry.'/');
       }
@@ -338,5 +352,225 @@ class cronjob {
   	}
   	return $count;
 	} // countFiles();
+	
+	private function checkIndexFiles() { 
+		global $dbWScfg;
+		if ($dbWScfg->getValue(dbWatchSiteCfg::cfgCheckIndexFiles)) {
+			$add_index = $dbWScfg->getValue(dbWatchSiteCfg::cfgAddIndexFiles);
+			$idx_file = file_get_contents(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/htt/index.php.htt');
+			// der Verzeichnisbaum wurde bereits von execWatchJob() ausgelesen
+			foreach ($this->dirTree as $dir) { 
+				if (!file_exists(WB_PATH.$dir.'index.php')) { echo "idx fehlt $dir<br>";
+					// missing index.php
+					$desc = sprintf(ws_log_desc_dir_index_missing, $dir);
+					$this->addLogEntry(dbWatchSiteLog::category_warning, dbWatchSiteLog::group_directory, ws_log_info_dir_index_missing, $desc);
+					if ($add_index) { echo "idx dazu<br>";
+						// insert missing index.php
+						$count = substr_count($dir, '/');
+						$idx = '';
+						for ($i=1; $i < $count; $i++) $idx .= '../';
+						$idx .= 'index.php';
+						$index_file = str_replace('{$relative_index}', $idx, $idx_file);
+						if (!file_put_contents(WB_PATH.$dir.'index.php', $index_file)) { 
+							// Error writing file
+							$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, sprintf(ws_error_cron_creating_index_file, $dir)));
+							// continue, dont break
+						}
+						else {
+							$desc = sprintf(ws_log_desc_dir_index_added, $dir);
+							$this->addLogEntry(dbWatchSiteLog::category_info, dbWatchSiteLog::group_directory, ws_log_info_dir_index_added, $desc);
+						}
+					}
+				}
+			}
+		}
+	} // checkIndexFiles()
+	
+	private function sendReport() {
+		global $dbWScfg;
+		global $dbCronjobData;
+		global $wb;
+		global $dbLog;
+		if ($dbWScfg->getValue(dbWatchSiteCfg::cfgSendReports)) {
+			// yes, send reports
+			$times = $dbWScfg->getValue(dbWatchSiteCfg::cfgSendReportsAtHours);
+			if (count($times) > 0) {
+				// check next report sending time
+				$where = array(dbCronjobData::field_item => dbCronjobData::item_next_report);
+				$next_report = array();
+				if (!$dbCronjobData->sqlSelectRecord($where, $next_report)) {
+					$this->setError(sprintf('[%s - %s} %s', __METHOD__, __LINE__, $dbCronjobData->getError()));
+					exit($this->getError());
+				}
+				// get actual time
+				$now = time();
+				if (count($next_report) == 0) {
+					// entry does not exists - get next execution time
+					$next_dt = $this->getNextReportExecutionTime($now);
+					$next_report = array(
+						dbCronjobData::field_item 	=> dbCronjobData::item_next_report,
+						dbCronjobData::field_value	=> date('Y-m-d H:i:s'));
+					if (!$dbCronjobData->sqlInsertRecord($next_report)) {
+						$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbCronjobData->getError()));
+						exit($this->getError());
+					}
+				}
+				else {
+					$next_report = $next_report[0];
+				}
+				// get next execution time
+				if (false == ($next_time = strtotime($next_report[dbCronjobData::field_value]))) {
+					// error invalid time
+					$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, sprintf(ws_error_cron_time_invalid, $next_report[dbCronjobData::field_value])));
+					exit($this->getError());
+				} 
+				if ($now >= $next_time) {
+					// ok - send a report
+					$emails = $dbWScfg->getValue(dbWatchSiteCfg::cfgSendReportsToMail);
+					if ((count($emails) > 0) && !empty($emails[0])) {
+						// send the report NOW
+						$where = array(dbCronjobData::field_item => dbCronjobData::item_last_report);
+						$last_report = array();
+						if (!$dbCronjobData->sqlSelectRecord($where, $last_report)) {
+							$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbCronjobData->getError()));
+							exit($this->getError());
+						}
+						if (count($last_report) == 0) {
+							// entry does not exists, set actual time
+							$last_time = time();
+							$data = array(dbCronjobData::field_item => dbCronjobData::item_last_report,
+														dbCronjobData::field_value => date('Y-m-d H:i:s', $last_time));
+							if (!$dbCronjobData->sqlInsertRecord($data)) {
+								$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbCronjobData->getError()));
+								exit($this->getError());
+							}
+						}
+						else {
+							$last_time = strtotime($last_report[0][dbCronjobData::field_value]);
+						}
+						$SQL = sprintf(	"SELECT * FROM %s WHERE %s>='%s' ORDER BY %s DESC",
+														$dbLog->getTableName(),
+														dbWatchSiteLog::field_timestamp,
+														date('Y-m-d H:i:s', $last_time),
+														dbWatchSiteLog::field_id);
+						$logs = array();
+						if (!$dbLog->sqlExec($SQL, $logs)) {
+							$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbLog->getError()));
+							exit($this->getError());
+						}
+						$items = '';
+						foreach ($logs as $log) {
+							$items .= sprintf('%s - %s%s<br />', 
+																date(ws_cfg_date_time, strtotime($log[dbWatchSiteLog::field_timestamp])),
+																($log[dbWatchSiteLog::field_category] == dbWatchSiteLog::category_warning) ? strtoupper($log[dbWatchSiteLog::field_category]).' - ' : '',
+																$log[dbWatchSiteLog::field_description]
+																);
+						}
+						if (empty($items)) {
+							$body = ws_mail_body_log_no_items;
+						}
+						else {
+							$body = sprintf(ws_mail_body_log_items, date(ws_cfg_date_time, $last_time), $items);
+						}
+						foreach ($emails as $email) {
+							if (!$wb->mail('', $email, ws_mail_subject_log, $body)) {
+								$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, sprintf(ws_error_sending_mail, $email)));
+								exit($this->getError());
+							}
+						}
+						// all emails are send, update database
+						$last_time = $now;
+						$next_time = $this->getNextReportExecutionTime($now);
+						$where = array(dbCronjobData::field_item => dbCronjobData::item_last_report);
+						$data = array(dbCronjobData::field_value => date('Y-m-d H:i:s', $last_time));
+						if (!$dbCronjobData->sqlUpdateRecord($data, $where)) {
+							$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbCronjobData->getError()));
+							exit($this->getError());
+						}
+						$where = array(dbCronjobData::field_item => dbCronjobData::item_next_report);
+						$data = array(dbCronjobData::field_value => date('Y-m-d H:i:s', $next_time));
+						if (!$dbCronjobData->sqlUpdateRecord($data, $where)) {
+							$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbCronjobData->getError()));
+							exit($this->getError());
+						}
+						$desc = sprintf(ws_log_desc_report_send, implode(', ', $emails));
+						$this->addLogEntry(dbWatchSiteLog::category_info, dbWatchSiteLog::group_report, ws_log_info_report_send, $desc);
+					}
+					else {
+						// no email address configured
+						$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, ws_error_cron_email_missing));
+						exit($this->getError());
+					}
+				}				
+				
+			} // count($times)
+			else {
+				// error: missing times
+				$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, ws_error_cron_report_time_missing));
+				// go ahead with the script!
+			}
+		}
+	} // sendReport()
+	
+	private function getNextReportExecutionTime($last_execution) {
+		global $dbWScfg;
+		// get the configured execution times
+		$times = $dbWScfg->getValue(dbWatchSiteCfg::cfgSendReportsAtHours);
+		if (count($times) > 0) {
+			// sort array
+			asort($times);
+			foreach ($times as $time) {
+				$hour = -1;
+				$minute = -1;
+				$this->checkTime($time, $hour, $minute);
+				$day = date('d', $last_execution);
+				$month = date('m', $last_execution);
+				$year = date('Y', $last_execution);
+				$check_time = mktime($hour, $minute, 0, $month, $day, $year);
+				if ($check_time > $last_execution) {
+					// ok - use this time
+					return $check_time;
+				}
+			}
+			// no execution time for this day, try tomorrow...
+			foreach ($times as $time) {
+			$hour = -1;
+				$minute = -1;
+				$this->checkTime($time, $hour, $minute);
+				$day = date('d', $last_execution)+1;
+				$month = date('m', $last_execution);
+				$year = date('Y', $last_execution);
+				$check_time = mktime($hour, $minute, 0, $month, $day, $year);
+				if ($check_time > $last_execution) {
+					// ok - use this time
+					return $check_time;
+				}
+			}
+		}
+		else {
+			// error: missing times
+			$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, ws_error_cron_report_time_missing));
+			exit($this->getError());
+		}
+		return false;
+	} // getNextReportExecutionTime()
+	
+	private function checkTime($time, &$hour, &$minute) {
+		if (strpos($time, ':') !== false) {
+			// assume H:i
+			list($hour, $minute) = explode(':', $time);
+		}
+		else {
+			// assume only hour
+			$hour = (int) $time;
+			$minute = 0;
+		}
+		if (($hour  < 0) || ($hour > 23) || ($minute < 0) || ($minute > 59)) {
+			// invalid time
+			$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, sprintf(ws_error_cron_report_time_invalid, $time)));
+			exit($this->getError());
+		}
+		return true;
+	} // checkTime()
 	
 } // class cronjob

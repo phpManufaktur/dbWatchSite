@@ -55,16 +55,26 @@ class dbWatchSiteCfg extends dbConnectLE {
   private $createTables 		= false;
   private $message					= '';
     
-  const cfgCronjobKey				= 'cfgCronjobKey';
-  const cfgWatchSiteActive	= 'cfgWatchSiteActive';
-  //const cfgCronjobExecTime	= 'cfgCronjobExecTime';
-  const cfgLogShowMax				= 'cfgLogShowMax';
+  const cfgCronjobKey					= 'cfgCronjobKey';
+  const cfgWatchSiteActive		= 'cfgWatchSiteActive';
+  const cfgLogShowMax					= 'cfgLogShowMax';
+  const cfgCheckIndexFiles		= 'cfgCheckIndexFiles';
+  const cfgAddIndexFiles			= 'cfgAddIndexFiles';
+  const cfgLogCronjobExecTime	= 'cfgLogCronjobExecTime';
+  const cfgSendReports				= 'cfgSendReports';
+  const cfgSendReportsAtHours	= 'cfgSendReportsAtHours';
+  const cfgSendReportsToMail	= 'cfgSendReportsToMail';
   
   public $config_array = array(
   	array('ws_label_cfg_cronjob_key', self::cfgCronjobKey, self::type_string, '', 'ws_desc_cfg_cronjob_key'),
   	array('ws_label_cfg_watch_site_active', self::cfgWatchSiteActive, self::type_boolean, '1', 'ws_desc_cfg_watch_site_active'),
-  	//array('ws_label_cfg_cronjob_exec_time', self::cfgCronjobExecTime, self::type_integer, '25', 'ws_desc_cfg_cronjob_exec_time')
-  	array('ws_label_cfg_log_show_max', self::cfgLogShowMax, self::type_integer, '250', 'ws_desc_cfg_log_show_max')
+  	array('ws_label_cfg_log_show_max', self::cfgLogShowMax, self::type_integer, '250', 'ws_desc_cfg_log_show_max'),
+  	array('ws_label_cfg_check_index_files', self::cfgCheckIndexFiles, self::type_boolean, '1', 'ws_desc_cfg_check_index_files'),
+  	array('ws_label_cfg_add_index_files', self::cfgAddIndexFiles, self::type_boolean, '0', 'ws_desc_cfg_add_index_files'),
+  	array('ws_label_cfg_log_cronjob_exec_time', self::cfgLogCronjobExecTime, self::type_boolean, '0', 'ws_desc_cfg_log_cronjob_exec_time'),
+  	array('ws_label_cfg_send_reports_at_hours', self::cfgSendReportsAtHours, self::type_array, '06:00,17:00', 'ws_desc_cfg_send_reports_at_hours'),
+  	array('ws_label_cfg_send_reports', self::cfgSendReports, self::type_boolean, '0', 'ws_desc_cfg_send_reports'),
+  	array('ws_label_cfg_send_reports_to_mail', self::cfgSendReportsToMail, self::type_array, '', 'ws_desc_cfg_send_reports_to_mail')
   );  
   
   public function __construct($createTables = false) {

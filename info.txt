@@ -1,0 +1,9 @@
+Release 0.10
+2010-12-14
+First BETA Release
+
+-- 
+dbWatchSite
+(c) 2010 by phpManufaktur, Berlin (Germany)
+ralf.hertsch@phpmanufaktur.de
+http://phpmanufaktur.de

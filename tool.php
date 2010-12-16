@@ -19,10 +19,13 @@ require_once(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/initialize.php');
 require_once(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/class.cronjob.php');
 
 global $dbLog;
-if (!is_object($dbLog)) $dbLog = new dbWatchSiteLog(true);
+if (!is_object($dbLog)) $dbLog = new dbWatchSiteLog();
 
 global $dbCronjobData;
-if (!is_object($dbCronjobData)) $dbCronjobData = new dbCronjobData(true);
+if (!is_object($dbCronjobData)) $dbCronjobData = new dbCronjobData();
+
+global $dbCronjobErrorLog;
+if (!is_object($dbCronjobErrorLog)) $dbCronjobErrorLog = new dbCronjobErrorLog();
 
 $tool = new toolWatchSite();
 $tool->action();
@@ -32,15 +35,25 @@ class toolWatchSite {
 	
 	const request_action 						= 'act';
 	const request_items							= 'its';
+	const request_log_tab						= 'rlt';
 	
+	const action_about							= 'abt';
 	const action_config							= 'cfg';
 	const action_config_check				= 'cc';
-	const action_log								= 'log';
 	const action_default						= 'def';
+	const action_log								= 'log';
+	const action_log_tab_watch			= 'ltw';
+	const action_log_tab_error			= 'lte';
 	
 	private $tab_navigation_array = array(
 		self::action_log								=> ws_tab_log,
-		self::action_config							=> ws_tab_config
+		self::action_config							=> ws_tab_config,
+		self::action_about							=> ws_tab_about
+	);
+	
+	private $tab_watch_array = array(
+		self::action_log_tab_watch			=> ws_tab_watch_log,
+		self::action_log_tab_error			=> ws_tab_watch_error
 	);
 	
 	private $page_link 					= '';
@@ -171,6 +184,9 @@ class toolWatchSite {
   		break;
   	case self::action_config_check:
   		$this->show(self::action_config, $this->checkConfig());
+  		break;
+  	case self::action_about:
+  		$this->show(self::action_about, $this->dlgAbout());
   		break;
   	case self::action_log:
   	default:
@@ -387,16 +403,48 @@ class toolWatchSite {
 		return $this->dlgConfig();
 	} // checkConfig()
     
+	/**
+   *
+   * @return STR dialog
+   */
   public function dlgLog() {
+  	$watch_tab = '';
+  	(isset($_REQUEST[self::request_log_tab])) ? $action = $_REQUEST[self::request_log_tab] : $action = self::action_log_tab_watch;
+  	foreach ($this->tab_watch_array as $key => $value) {
+  		($key== $action) ? $selected = ' class="selected"' : $selected = '';
+  		$watch_tab .= sprintf(	'<li%s><a href="%s">%s</a></li>',
+	  														$selected,
+	  														sprintf('%s&%s=%s&%s=%s', $this->page_link, self::request_action, self::action_log, self::request_log_tab, $key),
+	  														$value
+	  													);
+  	}
+  	$watch_tab = sprintf('<ul class="nav_tab">%s</ul>', $watch_tab);
+
+  	switch ($action):
+		default:
+		case self::action_log_tab_error:
+			$result = $this->dlgLogError();
+			break;
+		case self::action_log_tab_watch:
+		default:
+			$result = $this->dlgLogWatch();
+			break;
+  	endswitch;
+  	$result = sprintf('<div class="log_container">%s%s</div>', $watch_tab, $result);
+  	return $result;  	
+	} // dlgConfig()
+	
+	
+  public function dlgLogWatch() {
   	global $dbLog;
   	global $dbWScfg;
   	global $parser;
   	global $dbCronjobData;
   	
-  	$SQL = sprintf(	"SELECT * FROM %s WHERE %s!='%s' ORDER BY %s DESC LIMIT %d",
+  	$group = ($dbWScfg->getValue(dbWatchSiteCfg::cfgLogCronjobExecTime) == false) ? sprintf(" WHERE %s!='%s'", dbWatchSiteLog::field_group,	dbWatchSiteLog::group_cronjob) : ''; 
+  	$SQL = sprintf(	"SELECT * FROM %s%s ORDER BY %s DESC LIMIT %d",
   									$dbLog->getTableName(),
-  									dbWatchSiteLog::field_group,
-  									dbWatchSiteLog::group_cronjob,
+  									$group,
   									dbWatchSiteLog::field_id,
   									$dbWScfg->getValue(dbWatchSiteCfg::cfgLogShowMax));
   	$logs = array();
@@ -448,7 +496,61 @@ class toolWatchSite {
 			'items'			=> $items
 		);
 		return $parser->get($this->template_path.'backend.log.htt', $data);
-  } // dlgConfig()
+  } // dlgLogWatch()
+  
+  public function dlgLogError() {
+  	global $dbCronjobErrorLog;
+  	global $parser;
+  	
+  	$SQL = sprintf(	"SELECT * FROM %s ORDER BY %s DESC",
+  									$dbCronjobErrorLog->getTableName(),
+  									dbCronjobErrorLog::field_timestamp 
+  								);
+  	$logs = array();
+ 		if (!$dbCronjobErrorLog->sqlExec($SQL, $logs)) {
+ 			$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbCronjobErrorLog->getError()));
+ 			return false;
+ 		}
+ 		
+ 		$row = new Dwoo_Template_File($this->template_path.'backend.log.error.row.htt');
+  	$items = '';
+  	
+  	$flipflop = true;
+		foreach ($logs as $log) {
+			$flipflop ? $flipper = 'flip' : $flipper = 'flop';
+  		$flipflop ? $flipflop = false : $flipflop = true;
+			$data = array(
+				'flipflop'		=> $flipper,
+				'timestamp'		=> date(ws_cfg_date_time, strtotime($log[dbCronjobErrorLog::field_timestamp])),
+				'description'	=> $log[dbCronjobErrorLog::field_error]
+ 			);
+ 			$items .= $parser->get($row, $data);
+		}
+		
+		if (empty($items)) {
+			// es liegen keine Fehlermeldungen vor
+			$intro = sprintf('<div class="intro">%s</div>', ws_intro_log_no_error);
+		}
+		else {
+			$intro = sprintf('<div class="intro">%s</div>', ws_intro_log_error);
+		}
+		$data = array(
+			'header'		=> ws_header_log_error,
+			'intro'			=> $intro,
+			'items'			=> $items
+		);
+		return $parser->get($this->template_path.'backend.log.error.htt', $data);
+  } // dlgLogError()
+  
+  public function dlgAbout() {
+  	global $parser;
+  	$data = array(
+  		'version'					=> $this->getVersion(),
+  		'img_url'					=> WB_URL.'/modules/'.basename(dirname(__FILE__)).'/img/dbWatchSite_600.jpg',
+  		'release_notes'		=> file_get_contents(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/info.txt'),
+  	);
+  	return $parser->get($this->template_path.'backend.about.htt', $data);
+  } // dlgAbout()
   
 } // class toolWatchSite
 

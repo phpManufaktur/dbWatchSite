@@ -1,0 +1,4 @@
+<tr class="{$flipflop}">
+  <td class="wsl_timestamp_error">{$timestamp}</td>
+  <td class="wsl_desc">{$description}</td>
+</tr>
