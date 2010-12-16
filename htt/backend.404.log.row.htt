@@ -1,0 +1,4 @@
+<tr class="{$flipflop}">
+  <td class="ws4l_timestamp">{$timestamp}</td>
+  <td class="ws4l_request_uri">{$entry}</td>
+</tr>

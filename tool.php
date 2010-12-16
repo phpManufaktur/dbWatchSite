@@ -27,16 +27,34 @@ if (!is_object($dbCronjobData)) $dbCronjobData = new dbCronjobData();
 global $dbCronjobErrorLog;
 if (!is_object($dbCronjobErrorLog)) $dbCronjobErrorLog = new dbCronjobErrorLog();
 
+global $db404base;
+if (!is_object($db404base)) $db404base = new dbWatchSite404base(true);
+
+global $db404log;
+if (!is_object($db404log)) $db404log = new dbWatchSite404log(true);
+
+global $db404ip;
+if (!is_object($db404ip)) $db404ip = new dbWatchSite404ip(true);
+
+global $db404error;
+if (!is_object($db404error)) $db404error = new dbWatchSite404error(true);
+
+
 $tool = new toolWatchSite();
 $tool->action();
-
 
 class toolWatchSite {
 	
 	const request_action 						= 'act';
 	const request_items							= 'its';
-	const request_log_tab						= 'rlt';
+	const request_tab								= 'tab';
 	
+	const action_404								= '404';
+	const action_404_log						= '4log';
+	const action_404_basis					= '4bas';
+	const action_404_basis_check		= '4bsc';
+	const action_404_ips						= '4ip';
+	const action_404_error					= '4err';
 	const action_about							= 'abt';
 	const action_config							= 'cfg';
 	const action_config_check				= 'cc';
@@ -47,6 +65,7 @@ class toolWatchSite {
 	
 	private $tab_navigation_array = array(
 		self::action_log								=> ws_tab_log,
+		self::action_404								=> ws_tab_404,
 		self::action_config							=> ws_tab_config,
 		self::action_about							=> ws_tab_about
 	);
@@ -54,6 +73,13 @@ class toolWatchSite {
 	private $tab_watch_array = array(
 		self::action_log_tab_watch			=> ws_tab_watch_log,
 		self::action_log_tab_error			=> ws_tab_watch_error
+	);
+	
+	private $tab_404_array = array(
+		self::action_404_log						=> ws_tab_404_log,
+		self::action_404_basis					=> ws_tab_404_basis,
+		self::action_404_ips						=> ws_tab_404_ips,
+		self::action_404_error					=> ws_tab_404_error
 	);
 	
 	private $page_link 					= '';
@@ -187,6 +213,9 @@ class toolWatchSite {
   		break;
   	case self::action_about:
   		$this->show(self::action_about, $this->dlgAbout());
+  		break;
+  	case self::action_404:
+  		$this->show(self::action_404, $this->dlg404());
   		break;
   	case self::action_log:
   	default:
@@ -408,17 +437,17 @@ class toolWatchSite {
    * @return STR dialog
    */
   public function dlgLog() {
-  	$watch_tab = '';
-  	(isset($_REQUEST[self::request_log_tab])) ? $action = $_REQUEST[self::request_log_tab] : $action = self::action_log_tab_watch;
+  	$tab = '';
+  	(isset($_REQUEST[self::request_tab])) ? $action = $_REQUEST[self::request_tab] : $action = self::action_log_tab_watch;
   	foreach ($this->tab_watch_array as $key => $value) {
   		($key== $action) ? $selected = ' class="selected"' : $selected = '';
-  		$watch_tab .= sprintf(	'<li%s><a href="%s">%s</a></li>',
+  		$tab .= sprintf(	'<li%s><a href="%s">%s</a></li>',
 	  														$selected,
-	  														sprintf('%s&%s=%s&%s=%s', $this->page_link, self::request_action, self::action_log, self::request_log_tab, $key),
+	  														sprintf('%s&%s=%s&%s=%s', $this->page_link, self::request_action, self::action_log, self::request_tab, $key),
 	  														$value
 	  													);
   	}
-  	$watch_tab = sprintf('<ul class="nav_tab">%s</ul>', $watch_tab);
+  	$tab = sprintf('<ul class="nav_tab">%s</ul>', $tab);
 
   	switch ($action):
 		default:
@@ -430,9 +459,9 @@ class toolWatchSite {
 			$result = $this->dlgLogWatch();
 			break;
   	endswitch;
-  	$result = sprintf('<div class="log_container">%s%s</div>', $watch_tab, $result);
+  	$result = sprintf('<div class="log_container">%s%s</div>', $tab, $result);
   	return $result;  	
-	} // dlgConfig()
+	} // dlgLog()
 	
 	
   public function dlgLogWatch() {
@@ -551,6 +580,91 @@ class toolWatchSite {
   	);
   	return $parser->get($this->template_path.'backend.about.htt', $data);
   } // dlgAbout()
+  
+  public function dlg404() {
+  	$tab = '';
+  	(isset($_REQUEST[self::request_tab])) ? $action = $_REQUEST[self::request_tab] : $action = self::action_404_log;
+  	foreach ($this->tab_404_array as $key => $value) {
+  		($key== $action) ? $selected = ' class="selected"' : $selected = '';
+  		$tab .= sprintf(	'<li%s><a href="%s">%s</a></li>',
+	  														$selected,
+	  														sprintf('%s&%s=%s&%s=%s', $this->page_link, self::request_action, self::action_404, self::request_tab, $key),
+	  														$value
+	  													);
+  	}
+  	$tab = sprintf('<ul class="nav_tab">%s</ul>', $tab);
+
+  	switch ($action):
+  	case self::action_404_basis:
+  		$result = $this->dlg404basis();
+  		break;
+  	case self::action_404_ips:
+  		$result = $this->dlg404ips();
+  		break;
+  	case self::action_404_error:
+  		$result = $this->dlg404error();
+  		break;
+  	case self::action_404_log:
+		default:
+			$result = $this->dlg404protocol();
+			break;
+  	endswitch;
+  	$result = sprintf('<div class="log_container">%s%s</div>', $tab, $result);
+  	return $result;  	  	
+  } // dlg404()
+  
+  public function dlg404protocol() {
+  	global $db404log;
+  	global $dbWScfg;
+  	global $parser;
+  	
+  	$SQL = sprintf(	"SELECT * FROM %s ORDER BY %s DESC LIMIT %d",
+  									$db404log->getTableName(),
+  									dbWatchSite404log::field_id,
+  									$dbWScfg->getValue(dbWatchSiteCfg::cfg404LogShowMax));
+  	$logs = array();
+  	if (!$db404log->sqlExec($SQL, $logs)) {
+  		$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $db404log->getError()));
+  		return false;
+  	}
+  	$row = new Dwoo_Template_File($this->template_path.'backend.404.log.row.htt');
+  	$items = '';
+  	
+  	$flipflop = true;
+		foreach ($logs as $log) {
+			$flipflop ? $flipper = 'flip' : $flipper = 'flop';
+  		$flipflop ? $flipflop = false : $flipflop = true;
+			$data = array(
+				'flipflop'					=> $flipper,
+				'timestamp'					=> date(ws_cfg_date_time, strtotime($log[dbWatchSite404log::field_timestamp])),
+				'entry'							=> sprintf(	ws_text_404_log_entry,
+																				$log[dbWatchSite404log::field_request_uri],
+																				$log[dbWatchSite404log::field_referer],
+																				$log[dbWatchSite404log::field_remote_ip],
+																				$log[dbWatchSite404log::field_remote_host],
+																				$log[dbWatchSite404log::field_user_agent])
+			);
+			$items .= $parser->get($row, $data);
+		}
+		$data = array(
+			'header'		=> ws_header_404_log,
+			'intro'			=> sprintf('<div class="intro">%s</div>', ws_intro_404_log),
+			'items'			=> $items
+		);
+		return $parser->get($this->template_path.'backend.404.log.htt', $data);
+  } // dlg404protocoll()
+  
+  public function dlg404basis() {
+  	return '404 basis';
+  } // dlg404basis()
+  
+  public function dlg404ips() {
+  	return 'gesperrte IPs';
+  } // dlg404ips()
+  
+  public function dlg404error() {
+  	return 'tracking error';
+  } // dlg404error()
   
 } // class toolWatchSite
 

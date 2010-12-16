@@ -64,6 +64,7 @@ class dbWatchSiteCfg extends dbConnectLE {
   const cfgSendReports				= 'cfgSendReports';
   const cfgSendReportsAtHours	= 'cfgSendReportsAtHours';
   const cfgSendReportsToMail	= 'cfgSendReportsToMail';
+  const cfg404LogShowMax			= 'cfg404LogShowMax';
   
   public $config_array = array(
   	array('ws_label_cfg_cronjob_key', self::cfgCronjobKey, self::type_string, '', 'ws_desc_cfg_cronjob_key'),
@@ -74,7 +75,8 @@ class dbWatchSiteCfg extends dbConnectLE {
   	array('ws_label_cfg_log_cronjob_exec_time', self::cfgLogCronjobExecTime, self::type_boolean, '0', 'ws_desc_cfg_log_cronjob_exec_time'),
   	array('ws_label_cfg_send_reports_at_hours', self::cfgSendReportsAtHours, self::type_array, '06:00,17:00', 'ws_desc_cfg_send_reports_at_hours'),
   	array('ws_label_cfg_send_reports', self::cfgSendReports, self::type_boolean, '0', 'ws_desc_cfg_send_reports'),
-  	array('ws_label_cfg_send_reports_to_mail', self::cfgSendReportsToMail, self::type_array, '', 'ws_desc_cfg_send_reports_to_mail')
+  	array('ws_label_cfg_send_reports_to_mail', self::cfgSendReportsToMail, self::type_array, '', 'ws_desc_cfg_send_reports_to_mail'),
+  	array('ws_label_cfg_404_log_show_max', self::cfg404LogShowMax, self::type_integer, '250', 'ws_desc_cfg_404_log_show_max')
   );  
   
   public function __construct($createTables = false) {

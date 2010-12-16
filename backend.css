@@ -178,3 +178,13 @@ textarea
 .about_text p {
   line-height: 120%;
 }
+.ws404log_entry {
+  display: inline-block;
+  width: 90px;
+  font-weight: normal;
+  color: #666666;
+}
+.ws404log_uri {
+  font-weight: normal;
+  color: #990000
+}
