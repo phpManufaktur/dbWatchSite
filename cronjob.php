@@ -358,11 +358,11 @@ class cronjob {
 			$idx_file = file_get_contents(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/htt/index.php.htt');
 			// der Verzeichnisbaum wurde bereits von execWatchJob() ausgelesen
 			foreach ($this->dirTree as $dir) { 
-				if (!file_exists(WB_PATH.$dir.'index.php')) { echo "idx fehlt $dir<br>";
+				if (!file_exists(WB_PATH.$dir.'index.php')) { 
 					// missing index.php
 					$desc = sprintf(ws_log_desc_dir_index_missing, $dir);
 					$this->addLogEntry(dbWatchSiteLog::category_warning, dbWatchSiteLog::group_directory, ws_log_info_dir_index_missing, $desc);
-					if ($add_index) { echo "idx dazu<br>";
+					if ($add_index) { 
 						// insert missing index.php
 						$count = substr_count($dir, '/');
 						$idx = '';

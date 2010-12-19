@@ -154,6 +154,8 @@ define('ws_log_info_file_no_longer_exists',				'Datei existiert nicht mehr');
 define('ws_log_info_file_size_different',					'Dateigröße unterschiedlich');
 define('ws_log_info_report_send',									'Überwachungsprotokoll versendet');
 
+define('ws_mail_body_404_status_undefined',				'<p><b>Diese Fehlermeldung wurde noch nicht eingestuft</b>, bitte wählen Sie den passenden Link um festzulegen, wie in Zukunft auf diese Fehlermeldung reagiert werden soll.</p>');
+define('ws_mail_body_404_status_change',					'<p>Diese Fehlermeldung <b>ist bereits eingestuft</b>.<br>Sie können die Einstufung und das künftige Verhalten ändern, indem Sie den passenden Link auswählen.</p>');
 define('ws_mail_body_log_no_items',								'- Es befinden sich keine Einträge im Überwachungsprotokoll -');
 define('ws_mail_body_log_items',									'<p>Letzte Übermittlung: %s</p><p>Protokoll:</p><p>%s</p>');
 define('ws_mail_subject_log',											'Überwachungsprotokoll');

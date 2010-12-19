@@ -65,6 +65,29 @@ class errorTracker {
   } // isError
 	
   /**
+   * Return Version of Module
+   *
+   * @return FLOAT
+   */
+  public function getVersion() {
+    // read info.php into array
+    $info_text = file(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/info.php');
+    if ($info_text == false) {
+      return -1; 
+    }
+    // walk through array
+    foreach ($info_text as $item) {
+      if (strpos($item, '$module_version') !== false) {
+        // split string $module_version
+        $value = explode('=', $item);
+        // return floatval
+        return floatval(preg_replace('([\'";,\(\)[:space:][:alpha:]])', '', $value[1]));
+      } 
+    }
+    return -1;
+  } // getVersion()
+  
+  /**
    * Verhindert XSS Cross Site Scripting
    * 
    * @param REFERENCE $_REQUEST Array
@@ -148,10 +171,12 @@ class errorTracker {
     		dbWatchSite404base::field_request_uri		=> $request_uri,
     		dbWatchSite404base::field_verification	=> $wsTools->generatePassword(10)
     	);
-    	if (!$db404base->sqlInsertRecord($base404)) {
+    	$id = -1;
+    	if (!$db404base->sqlInsertRecord($base404, $id)) {
     		$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $db404base->getError()));
     		exit($this->getError());
     	}
+    	$base404[dbWatchSite404base::field_id] = $id;
     }
     if (($base404[dbWatchSite404base::field_category] == dbWatchSite404base::category_undefined) ||
     		($base404[dbWatchSite404base::field_behaviour] == dbWatchSite404base::behaviour_prompt)) {
@@ -213,8 +238,12 @@ class errorTracker {
 		else {
 			$server_name = sprintf('%s [%s]', $server_name, $_SERVER['SERVER_ADDR']);
 		}
-		$status = 'status';
-		$info = 'info';
+		if ($base404[dbWatchSite404base::field_category] == dbWatchSite404base::category_undefined) {
+			$status = ws_mail_body_404_status_undefined;
+		}
+		else {
+			$status = ws_mail_body_404_status_change;
+		}
 		$data = array(
 			'server_name'				=> $server_name,
 			'request_uri'				=> $log404[dbWatchSite404log::field_request_uri],
@@ -225,10 +254,11 @@ class errorTracker {
 			'status'						=> $status,
 			'prompt_link'				=> sprintf('%s/index.php?sw=ep&idx=%d&key=%s', WB_URL, $base404[dbWatchSite404base::field_id], $base404[dbWatchSite404base::field_verification]),
 			'ignore_link'				=> sprintf('%s/index.php?sw=ei&idx=%d&key=%s', WB_URL, $base404[dbWatchSite404base::field_id], $base404[dbWatchSite404base::field_verification]),
-			'lock_link'					=> sprintf('%s/index.php?sw=xl&idx=%d&key=%s', WB_URL, $base404[dbWatchSite404base::field_id], $base404[dbWatchSite404base::field_verification]),
-			'dbWatchSiteInfo'		=> $info
+			'lock_link'					=> sprintf('%s/index.php?sw=xl&idx=%d&key=%s', WB_URL, $base404[dbWatchSite404base::field_id], $base404[dbWatchSite404base::field_verification])
 		);
 		$body = $parser->get($this->language_path.LANGUAGE.'.mail.404.htt', $data);
+		$body .= sprintf(	'<div style="padding: 15px 0 0 0;font-size:9pt;text-align:center;color:#800000;background-color:transparent;"><b>dbWatchSite</b> v%s - &copy %d by phpManufaktur - Ralf Hertsch, Berlin (Germany)<br /><a href="http://phpmanufaktur.de">http://phpManufaktur.de</a> - <a href="mailto:ralf.hertsch@phpmanufaktur.de">ralf.hertsch@phpManufaktur.de</a> - <i>+49 (0)30 68813647</i></div>', 
+											$this->getVersion(), date('Y'));
 		$subject = sprintf(ws_mail_subject_404, $server_name);
 		foreach ($emails as $email) {
 			if (!$wb->mail('', $email, $subject, $body)) {
