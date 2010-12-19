@@ -1,0 +1,7 @@
+<tr class="{$flipflop}">
+  <td class="wsi_id">{$id}</td>
+  <td class="wsi_ip">{$ip}</td>
+  <td class="wsi_count">{$count}</td>
+  <td class="wsi_locked_since">{$locked_since}</td>
+  <td class="wsi_locked_until">{$locked_until}</td>
+</tr>

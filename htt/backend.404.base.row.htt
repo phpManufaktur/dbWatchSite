@@ -1,0 +1,7 @@
+<tr class="{$flipflop}">
+  <td class="ws4b_timestamp">{$timestamp}</td>
+  <td class="ws4b_count">{$count}</td>
+  <td class="ws4b_request_uri">{$request_uri}</td>
+  <td class="ws4b_category">{$category}</td>
+  <td class="ws4b_behaviour">{$behaviour}</td>
+</tr>

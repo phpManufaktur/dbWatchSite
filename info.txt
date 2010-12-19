@@ -1,3 +1,8 @@
+Release 0.11
+2010-12-19
+Second BETA Release
+Added 404 features
+
 Release 0.10
 2010-12-14
 First BETA Release

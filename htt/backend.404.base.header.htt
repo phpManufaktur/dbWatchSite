@@ -1,0 +1,7 @@
+<tr>
+  <th class="ws4b_timestamp">{$timestamp}</th>
+  <th class="ws4b_count">{$count}</th>
+  <th class="ws4b_request_uri">{$request_uri}</th>
+  <th class="ws4b_category">{$category}</th>
+  <th class="ws4b_behaviour">{$behaviour}</th>
+</tr>

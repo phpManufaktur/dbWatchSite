@@ -19,7 +19,7 @@ require_once(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/class.config.php'
 
 global $admin;
 
-$tables = array('dbWatchSiteCfg', 'dbWatchSiteDirectory', 'dbWatchSiteFiles', 'dbWatchSiteLog', 'dbCronjobData', 'dbCronjobErrorLog');
+$tables = array('dbWatchSiteCfg', 'dbWatchSiteDirectory', 'dbWatchSiteFiles', 'dbWatchSiteLog', 'dbCronjobData', 'dbCronjobErrorLog', 'dbWatchSite404base', 'dbWatchSite404error', 'dbWatchSite404ip', 'dbWatchSite404log');
 $error = '';
 
 foreach ($tables as $table) {
@@ -27,7 +27,7 @@ foreach ($tables as $table) {
 	$delete = new $table();
 	if ($delete->sqlTableExists()) {
 		if (!$delete->sqlDeleteTable()) {
-			$error .= sprintf('[INSTALLATION] %s', $delete->getError());
+			$error .= sprintf('[UNINSTALL] %s', $delete->getError());
 		}
 	}
 }

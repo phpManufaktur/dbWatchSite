@@ -1,0 +1,7 @@
+<tr>
+  <th class="wsi_id">{$id}</th>
+  <th class="wsi_ip">{$ip}</th>
+  <th class="wsi_count">{$count}</th>
+  <th class="wsi_locked_since">{$locked_since}</th>
+  <th class="wsi_locked_until">{$locked_until}</th>
+</tr>

@@ -184,7 +184,12 @@ textarea
   font-weight: normal;
   color: #666666;
 }
+td.ws4b_request_uri,
 .ws404log_uri {
   font-weight: normal;
   color: #990000
+}
+td.ws4b_count {
+  text-align: right;
+  color: #000099;
 }

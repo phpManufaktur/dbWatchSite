@@ -47,6 +47,7 @@ class toolWatchSite {
 	
 	const request_action 						= 'act';
 	const request_items							= 'its';
+	const request_subaction					= 'sub';
 	const request_tab								= 'tab';
 	
 	const action_404								= '404';
@@ -596,7 +597,12 @@ class toolWatchSite {
 
   	switch ($action):
   	case self::action_404_basis:
-  		$result = $this->dlg404basis();
+  		if (isset($_REQUEST[self::request_subaction]) && ($_REQUEST[self::request_subaction] == self::action_404_basis_check)) {
+  			$result = $this->check404base();
+  		}
+  		else {
+  			$result = $this->dlg404base();
+  		}
   		break;
   	case self::action_404_ips:
   		$result = $this->dlg404ips();
@@ -654,16 +660,253 @@ class toolWatchSite {
 		return $parser->get($this->template_path.'backend.404.log.htt', $data);
   } // dlg404protocoll()
   
-  public function dlg404basis() {
-  	return '404 basis';
+  public function dlg404base() {
+  	global $db404base;
+  	global $parser;
+  	global $dbWScfg;
+  	
+  	$SQL = sprintf( "SELECT * FROM %s ORDER BY %s DESC LIMIT %d",
+  									$db404base->getTableName(),
+  									dbWatchSite404base::field_id,
+  									$dbWScfg->getValue(dbWatchSiteCfg::cfg404BasisShowMax));
+  	$entries = array();
+  	if (!$db404base->sqlExec($SQL, $entries)) {
+  		$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $db404base->getError()));
+  		return false;
+  	}
+  	$row = new Dwoo_Template_File($this->template_path.'backend.404.base.row.htt');
+  	$items = '';
+  	
+  	$data = array(
+  		'timestamp'				=> ws_header_timestamp,
+  		'count'						=> ws_header_calls,
+  		'request_uri'			=> ws_header_request_uri,
+  		'category'				=> ws_header_category,
+  		'behaviour'				=> ws_header_behaviour
+  	);
+  	$items .= $parser->get($this->template_path.'backend.404.base.header.htt', $data);
+  	
+  	$id_array = array();
+  	
+  	$flipflop = true;
+		foreach ($entries as $entry) {
+			$flipflop ? $flipper = 'flip' : $flipper = 'flop';
+  		$flipflop ? $flipflop = false : $flipflop = true;
+  		// add ID to id_array
+  		$id_array[] = $entry[dbWatchSite404base::field_id];
+  		
+  		// category
+			$category = '';
+			foreach ($db404base->category_array as $key => $value) {
+				($key == $entry[dbWatchSite404base::field_category]) ? $selected = ' selected="selected"' : $selected = '';
+				$category .= sprintf('<option value="%s"%s>%s</option>', $key, $selected, $value); 
+			}		
+			$category = sprintf('<select name="%s_%d">%s</select>', dbWatchSite404base::field_category, $entry[dbWatchSite404base::field_id], $category);
+		
+			// behaviour
+			$behaviour = '';
+			foreach ($db404base->behaviour_array as $key => $value) {
+				($key == $entry[dbWatchSite404base::field_behaviour]) ? $selected = ' selected="selected"' : $selected = '';
+				$behaviour .= sprintf('<option value="%s"%s>%s</option>', $key, $selected, $value); 
+			}		
+			$behaviour = sprintf('<select name="%s_%d">%s</select>', dbWatchSite404base::field_behaviour, $entry[dbWatchSite404base::field_id], $behaviour);
+			
+			$data = array(
+				'flipflop'			=> $flipper,
+				'timestamp'			=> date(ws_cfg_date_time, strtotime($entry[dbWatchSite404base::field_timestamp])),
+				'count'					=> sprintf('%05d', $entry[dbWatchSite404base::field_count]),
+				'request_uri'		=> $entry[dbWatchSite404base::field_request_uri],
+				'category'			=> $category,
+				'behaviour'			=> $behaviour
+			);
+			$items .= $parser->get($row, $data);
+		}
+		
+		// show messages
+		if ($this->isMessage()) {
+			$intro = sprintf('<div class="message">%s</div>', $this->getMessage());
+		}
+		else {
+			$intro = sprintf('<div class="intro">%s</div>', ws_intro_404_base);
+		}
+		
+		$data = array(
+			'form_name'				=> 'wsb_form',
+			'form_action'			=> $this->page_link,
+			'action_name'			=> self::request_action,
+			'action_value'		=> self::action_404,
+			'tab_name'				=> self::request_tab,
+			'tab_value'				=> self::action_404_basis,
+			'subaction_name'	=> self::request_subaction,
+			'subaction_value'	=> self::action_404_basis_check,
+			'items_name'			=> self::request_items,
+			'items_value'			=> implode(',', $id_array),
+			'header'					=> ws_header_404_base,
+			'intro'						=> $intro,
+			'btn_ok'					=> ws_btn_ok,
+			'btn_abort'				=> ws_btn_abort,
+			'abort_location'	=> $this->page_link,
+			'items'						=> $items
+		);
+		return $parser->get($this->template_path.'backend.404.base.htt', $data);
   } // dlg404basis()
   
+  private function check404base() {
+  	global $db404base;
+  	if ((!isset($_REQUEST[self::request_items])) || (empty($_REQUEST[self::request_items]))) return $this->dlg404base();
+  	
+  	$SQL = sprintf( "SELECT * FROM %s WHERE %s IN (%s)",
+  									$db404base->getTableName(),
+  									dbWatchSite404base::field_id,
+  									$_REQUEST[self::request_items]);
+  	$bases = array();
+  	if (!$db404base->sqlExec($SQL, $bases)) {
+  		$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $db404base->getError()));
+  		return false;
+  	}
+  	$base_changed = false;
+  	foreach ($bases as $base) {
+  		if ((isset($_REQUEST[dbWatchSite404base::field_category.'_'.$base[dbWatchSite404base::field_id]])) && 
+  				(isset($_REQUEST[dbWatchSite404base::field_behaviour.'_'.$base[dbWatchSite404base::field_id]]))) {
+  			if (($_REQUEST[dbWatchSite404base::field_category.'_'.$base[dbWatchSite404base::field_id]] !== $base[dbWatchSite404base::field_category]) ||
+  					($_REQUEST[dbWatchSite404base::field_behaviour.'_'.$base[dbWatchSite404base::field_id]] !== $base[dbWatchSite404base::field_behaviour])) {
+  				// record is changed
+  				$base_changed = true;
+  				$where = array(dbWatchSite404base::field_id => $base[dbWatchSite404base::field_id]);
+  				$data = array(
+  					dbWatchSite404base::field_behaviour => $_REQUEST[dbWatchSite404base::field_behaviour.'_'.$base[dbWatchSite404base::field_id]],
+  					dbWatchSite404base::field_category	=> $_REQUEST[dbWatchSite404base::field_category.'_'.$base[dbWatchSite404base::field_id]]
+  				);			
+  				if (!$db404base->sqlUpdateRecord($data, $where)) {
+  					$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $db404base->getError()));
+  					return false;
+  				}
+  			}	
+  		}	
+  	}
+  	if ($base_changed) $this->setMessage(ws_msg_base_404_changed);
+  	return $this->dlg404base();
+  } // check404base()
+  
   public function dlg404ips() {
-  	return 'gesperrte IPs';
+  	global $db404ip;
+  	global $parser;
+  	global $dbWScfg;
+  	
+  	$lock_time = $dbWScfg->getValue(dbWatchSiteCfg::cfg404LockIpTime);
+  	
+  	if ($lock_time == 0) {
+  		// dont lock any ip...
+  		$data = array(
+				'header'		=> ws_header_404_ip,
+				'intro'			=> sprintf('<div class="intro">%s</div>', ws_intro_404_ip_no_locks),
+				'items'			=> ''
+			);
+			return $parser->get($this->template_path.'backend.404.ip.htt', $data);
+  	}
+  	
+ 		if ($lock_time < 0) {
+ 			// locked permanent
+ 			$SQL = sprintf( "SELECT * FROM %s ORDER BY %s DESC",
+ 											$db404ip->getTableName(),
+ 											dbWatchSite404ip::field_locked_since);
+ 		}
+ 		else {
+ 			// locked temporary
+ 			$start_date = time()-(60*$lock_time);
+ 			$SQL = sprintf( "SELECT * FROM %s WHERE %s >= '%s' ORDER BY %s DESC",
+ 											$db404ip->getTableName(),
+ 											dbWatchSite404ip::field_locked_since,
+ 											date('Y-m-d H:i:s', $start_date),
+ 											dbWatchSite404ip::field_locked_since);
+ 		}
+ 		$ips = array();
+ 		if (!$db404ip->sqlExec($SQL, $ips)) {
+ 			$this->setError(sprintf('{%s - %s] %s', __METHOD__, __LINE__, $db404ip->getError()));
+ 			return false;
+ 		}
+ 		if (count($ips) == 0) {
+ 			// no locked IP's at the moment
+ 			$data = array(
+				'header'		=> ws_header_404_ip,
+				'intro'			=> sprintf('<div class="intro">%s</div>', ws_intro_404_ip_empty),
+				'items'			=> ''
+			);
+			return $parser->get($this->template_path.'backend.404.ip.htt', $data);
+ 		}
+ 		$row = new Dwoo_Template_File($this->template_path.'backend.404.ip.row.htt');
+  	$items = '';
+  	
+  	$flipflop = true;
+		foreach ($ips as $ip) {
+			$flipflop ? $flipper = 'flip' : $flipper = 'flop';
+  		$flipflop ? $flipflop = false : $flipflop = true;
+  		if ($lock_time < 0) {
+  			$locked_until = date(ws_cfg_date_time, mktime(23, 59, 59, date('m'), date('d'), date('Y')+20));
+  		}
+  		else {
+  			$locked_until = date(ws_cfg_date_time, (strtotime($ip[dbWatchSite404ip::field_locked_since])+(60*$lock_time)));
+  		}
+			$data = array(
+				'flipflop'					=> $flipper,
+				'id'								=> sprintf('%05d', $ip[dbWatchSite404ip::field_id]),
+				'ip'								=> $ip[dbWatchSite404ip::field_remote_ip],
+				'count'							=> sprintf('%05d', $ip[dbWatchSite404ip::field_count]),
+				'locked_since'			=> date(ws_cfg_date_time, strtotime($ip[dbWatchSite404ip::field_locked_since])),
+				'locked_until'			=> $locked_until
+			);
+			$items .= $parser->get($row, $data);
+		}
+		$data = array(
+			'header'		=> ws_header_404_ip,
+			'intro'			=> sprintf('<div class="intro">%s</div>', ws_intro_404_ip),
+			'items'			=> $items
+		);
+		return $parser->get($this->template_path.'backend.404.ip.htt', $data);
   } // dlg404ips()
   
   public function dlg404error() {
-  	return 'tracking error';
+  	global $db404error;
+  	global $parser;
+  	
+  	$SQL = sprintf(	"SELECT * FROM %s ORDER BY %s DESC",
+  									$db404error->getTableName(),
+  									dbWatchSite404error::field_timestamp 
+  								);
+  	$logs = array();
+ 		if (!$db404error->sqlExec($SQL, $logs)) {
+ 			$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $db404error->getError()));
+ 			return false;
+ 		}
+ 		
+ 		$row = new Dwoo_Template_File($this->template_path.'backend.404.error.row.htt');
+  	$items = '';
+  	
+  	$flipflop = true;
+		foreach ($logs as $log) {
+			$flipflop ? $flipper = 'flip' : $flipper = 'flop';
+  		$flipflop ? $flipflop = false : $flipflop = true;
+			$data = array(
+				'flipflop'		=> $flipper,
+				'timestamp'		=> date(ws_cfg_date_time, strtotime($log[dbWatchSite404error::field_timestamp])),
+				'description'	=> $log[dbWatchSite404error::field_error]
+ 			);
+ 			$items .= $parser->get($row, $data);
+		}
+		
+		if (empty($items)) {
+			// es liegen keine Fehlermeldungen vor
+			$intro = sprintf('<div class="intro">%s</div>', ws_intro_404_no_error);
+		}
+		else {
+			$intro = sprintf('<div class="intro">%s</div>', ws_intro_404_error);
+		}
+		$data = array(
+			'header'		=> ws_header_404_error,
+			'intro'			=> $intro,
+			'items'			=> $items
+		);
+		return $parser->get($this->template_path.'backend.404.error.htt', $data);
   } // dlg404error()
   
 } // class toolWatchSite

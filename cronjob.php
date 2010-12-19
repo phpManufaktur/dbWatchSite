@@ -47,13 +47,11 @@ class cronjob {
 	
 	private $error = '';
 	private $start_script = 0;
-	//private $max_exec_time = 0;
 	private $dirTree = array();
 	
 	public function __construct() {
 		global $dbWScfg;
 		$this->start_script = time(true);
-		//$this->max_exec_time = $dbWScfg->getValue(dbWatchSiteCfg::cfgCronjobExecTime);
 	} // __construct()
 	
 	private function setError($error) {
@@ -82,7 +80,7 @@ class cronjob {
 		global $dbLog;
 		
 		if ($dbWScfg->getValue(dbWatchSiteCfg::cfgWatchSiteActive) == false) {
-			// dbWatchSite is inactive so leave the scripe immediate...
+			// dbWatchSite is inactive so leave the script immediate without logging...
 			exit(0);
 		}
 		// Log access to cronjob...

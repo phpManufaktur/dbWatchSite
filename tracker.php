@@ -33,11 +33,21 @@ global $wsTools;
 if (!is_object($wsTools)) $wsTools = new wsTools();
 
 $errorTracker = new errorTracker();
-$errorTracker->checkError();
+$errorTracker->action();
 
 class errorTracker {
 
+	const 	request_action 			= 'act';
+	const 	action_default			= 'def';
+	
 	private $error = '';
+	private $template_path = '';
+	private $language_path = '';
+	
+	public function __construct() {
+		$this->template_path = WB_PATH . '/modules/' . basename(dirname(__FILE__)) . '/htt/' ;
+		$this->language_path = WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/languages/';
+	} // __construct()
 	
 	private function setError($error) {
 		global $db404error;
@@ -54,6 +64,34 @@ class errorTracker {
     return (bool) !empty($this->error);
   } // isError
 	
+  /**
+   * Verhindert XSS Cross Site Scripting
+   * 
+   * @param REFERENCE $_REQUEST Array
+   * @return $request
+   */
+	public function xssPrevent(&$request) {
+  	if (is_string($request)) {
+	    $request = html_entity_decode($request);
+	    $request = strip_tags($request);
+	    $request = trim($request);
+	    $request = stripslashes($request);
+  	}
+	  return $request;
+  } // xssPrevent()
+	
+  public function action() {
+  	foreach ($_REQUEST as $key => $value) {
+ 			$_REQUEST[$key] = $this->xssPrevent($value);
+  	}
+    isset($_REQUEST[self::request_action]) ? $action = $_REQUEST[self::request_action] : $action = self::action_default;
+  	switch ($action):
+  	case self::action_default:
+  	default:
+  		$this->checkError();
+  	endswitch;
+  } // action
+  
 	public function checkError() {
 		global $db404base;
 		global $db404log;
@@ -72,14 +110,14 @@ class errorTracker {
   		$user_agent = $_SERVER['HTTP_USER_AGENT'];
     }
     // log this 404 
-		$data = array(
+		$log_data = array(
 			dbWatchSite404log::field_request_uri			=> $request_uri,
 			dbWatchSite404log::field_referer					=> $http_referer,
 			dbWatchSite404log::field_remote_ip				=> $remote_ip,
 			dbWatchSite404log::field_remote_host			=> $remote_host,
 			dbWatchSite404log::field_user_agent				=> $user_agent
 		);
-    if (!$db404log->sqlInsertRecord($data)) {
+    if (!$db404log->sqlInsertRecord($log_data)) {
     	$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $db404log->getError()));
     	exit($this->getError());
     }
@@ -118,7 +156,7 @@ class errorTracker {
     if (($base404[dbWatchSite404base::field_category] == dbWatchSite404base::category_undefined) ||
     		($base404[dbWatchSite404base::field_behaviour] == dbWatchSite404base::behaviour_prompt)) {
     	// send a mail to webmaster	
-    	$this->sendBaseMessage($base404);	
+    	$this->sendBaseMessage($base404, $log_data);	
     }
     elseif ($base404[dbWatchSite404base::field_behaviour] == dbWatchSite404base::behaviour_lock) {
     	// lock the ip...
@@ -132,7 +170,7 @@ class errorTracker {
     		// update record
     		$ip404 = $ip404[0];
     		$where = array(dbWatchSite404ip::field_id => $ip404[dbWatchSite404ip::field_id]);
-    		$data = array(dbWatchSite404ip::field_count => $ip404[$db404ip]+1,
+    		$data = array(dbWatchSite404ip::field_count => $ip404[dbWatchSite404ip::field_count]+1, //$ip404[$db404ip]+1,
     									dbWatchSite404ip::field_locked_since => date('Y-m-d H:i:s'));
     		if (!$db404ip->sqlUpdateRecord($data, $where)) {
     			$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $db404ip->getError()));
@@ -156,8 +194,48 @@ class errorTracker {
 	} // checkError()
 	
 	
-	private function sendBaseMessage($base404) {
-		echo "send message!";
+	private function sendBaseMessage($base404, $log404) {
+		global $parser;
+		global $dbWScfg;
+		global $wb;
+		
+		$emails = $dbWScfg->getValue(dbWatchSiteCfg::cfg404SendMailsTo);
+		if (empty($emails[0])) {
+			// no emails defined
+			$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, ws_error_404_email_missing));
+			exit($this->getError());
+		}
+		
+		$server_name = $dbWScfg->getValue(dbWatchSiteCfg::cfgServerName);
+		if (empty($server_name)) {
+			$server_name = $_SERVER['SERVER_ADDR'];
+		}
+		else {
+			$server_name = sprintf('%s [%s]', $server_name, $_SERVER['SERVER_ADDR']);
+		}
+		$status = 'status';
+		$info = 'info';
+		$data = array(
+			'server_name'				=> $server_name,
+			'request_uri'				=> $log404[dbWatchSite404log::field_request_uri],
+			'http_referer'			=> $log404[dbWatchSite404log::field_referer],
+			'remote_ip'					=> $log404[dbWatchSite404log::field_remote_ip],
+			'remote_host'				=> $log404[dbWatchSite404log::field_remote_host],
+			'user_agent'				=> $log404[dbWatchSite404log::field_user_agent],
+			'status'						=> $status,
+			'prompt_link'				=> sprintf('%s/index.php?sw=ep&idx=%d&key=%s', WB_URL, $base404[dbWatchSite404base::field_id], $base404[dbWatchSite404base::field_verification]),
+			'ignore_link'				=> sprintf('%s/index.php?sw=ei&idx=%d&key=%s', WB_URL, $base404[dbWatchSite404base::field_id], $base404[dbWatchSite404base::field_verification]),
+			'lock_link'					=> sprintf('%s/index.php?sw=xl&idx=%d&key=%s', WB_URL, $base404[dbWatchSite404base::field_id], $base404[dbWatchSite404base::field_verification]),
+			'dbWatchSiteInfo'		=> $info
+		);
+		$body = $parser->get($this->language_path.LANGUAGE.'.mail.404.htt', $data);
+		$subject = sprintf(ws_mail_subject_404, $server_name);
+		foreach ($emails as $email) {
+			if (!$wb->mail('', $email, $subject, $body)) {
+				$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, sprintf(ws_error_sending_mail, $email)));
+				exit($this->getError());
+			}
+		}
 	} // sendMessage
 	
 } // class errorTracker

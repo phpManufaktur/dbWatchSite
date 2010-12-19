@@ -65,6 +65,12 @@ class dbWatchSiteCfg extends dbConnectLE {
   const cfgSendReportsAtHours	= 'cfgSendReportsAtHours';
   const cfgSendReportsToMail	= 'cfgSendReportsToMail';
   const cfg404LogShowMax			= 'cfg404LogShowMax';
+  const cfg404BasisShowMax		= 'cfg404BasisShowMax';
+  const cfg404LockIpTime			= 'cfg404LockIpTime';
+  const cfg404LockIpAccess		= 'cfg404LockIpAccess';
+  const cfg404LockIpAuto			= 'cfg404LockAuto';
+  const cfg404SendMailsTo			= 'cfg404SendMailsTo';
+  const cfgServerName					= 'cfgServerName';
   
   public $config_array = array(
   	array('ws_label_cfg_cronjob_key', self::cfgCronjobKey, self::type_string, '', 'ws_desc_cfg_cronjob_key'),
@@ -76,7 +82,13 @@ class dbWatchSiteCfg extends dbConnectLE {
   	array('ws_label_cfg_send_reports_at_hours', self::cfgSendReportsAtHours, self::type_array, '06:00,17:00', 'ws_desc_cfg_send_reports_at_hours'),
   	array('ws_label_cfg_send_reports', self::cfgSendReports, self::type_boolean, '0', 'ws_desc_cfg_send_reports'),
   	array('ws_label_cfg_send_reports_to_mail', self::cfgSendReportsToMail, self::type_array, '', 'ws_desc_cfg_send_reports_to_mail'),
-  	array('ws_label_cfg_404_log_show_max', self::cfg404LogShowMax, self::type_integer, '250', 'ws_desc_cfg_404_log_show_max')
+  	array('ws_label_cfg_404_log_show_max', self::cfg404LogShowMax, self::type_integer, '250', 'ws_desc_cfg_404_log_show_max'),
+  	array('ws_label_cfg_404_basis_show_max', self::cfg404BasisShowMax, self::type_integer, '100', 'ws_desc_cfg_404_basis_show_max'),
+  	array('ws_label_cfg_404_lock_ip_time', self::cfg404LockIpTime, self::type_integer, '60', 'ws_desc_cfg_404_lock_ip_time'),
+  	array('ws_label_cfg_404_lock_ip_access', self::cfg404LockIpAccess, self::type_integer, '2', 'ws_desc_cfg_404_lock_ip_access'),
+  	array('ws_label_cfg_404_lock_ip_auto', self::cfg404LockIpAuto, self::type_integer, '10', 'ws_desc_cfg_404_lock_ip_auto'),
+  	array('ws_label_cfg_server_name',	self::cfgServerName, self::type_string, '', 'ws_desc_cfg_server_name'),
+  	array('ws_label_cfg_404_send_mails_to', self::cfg404SendMailsTo, self::type_array, '', 'ws_desc_cfg_404_send_mails_to')
   );  
   
   public function __construct($createTables = false) {

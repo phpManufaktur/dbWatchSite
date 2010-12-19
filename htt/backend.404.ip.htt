@@ -1,0 +1,13 @@
+<!-- $Id$ -->
+<h2>{$header}</h2>
+{$intro}
+<table width="100%">
+  <colgroup>
+    <col width="20%" />
+    <col width="20%" />
+    <col width="20%" />
+    <col width="20%" />
+    <col width="20%" />
+  </colgroup>
+  {$items}
+</table>
