@@ -407,7 +407,7 @@ class cronjob {
 					$next_dt = $this->getNextReportExecutionTime($now);
 					$next_report = array(
 						dbCronjobData::field_item 	=> dbCronjobData::item_next_report,
-						dbCronjobData::field_value	=> date('Y-m-d H:i:s'));
+						dbCronjobData::field_value	=> date('Y-m-d H:i:s', $next_dt));
 					if (!$dbCronjobData->sqlInsertRecord($next_report)) {
 						$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbCronjobData->getError()));
 						exit($this->getError());
@@ -415,6 +415,18 @@ class cronjob {
 				}
 				else {
 					$next_report = $next_report[0];
+					// check if value contains a valid DT
+					if (false == ($next_time = strtotime($next_report[dbCronjobData::field_value]))) {
+						// insert actual time
+						$next_dt = $this->getNextReportExecutionTime($now);
+						$where = array(dbCronjobData::field_item 	=> dbCronjobData::item_next_report);
+						$data = array(dbCronjobData::field_value	=> date('Y-m-d H:i:s', $next_dt));
+						if (!$dbCronjobData->sqlUpdateRecord($data, $where)) {
+							$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbCronjobData->getError()));
+							exit($this->getError());
+						}
+						$next_report[dbCronjobData::field_value] = $data[dbCronjobData::field_value];
+					}
 				}
 				// get next execution time
 				if (false == ($next_time = strtotime($next_report[dbCronjobData::field_value]))) {

@@ -1,3 +1,7 @@
+Release 0.12
+xxxx-xx-xx
+- fixed: problem getting/setting times for creating cronjob reports
+
 Release 0.11
 2010-12-19
 Second BETA Release

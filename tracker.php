@@ -121,8 +121,8 @@ class errorTracker {
 		global $db404ip;
 		global $wsTools;
 		
-		$request_uri = $_SERVER['REQUEST_URI'];
-		$http_referer = (isset($_SERVER['HTTP_REFERER']) && !empty($_SERVER['HTTP_REFERER'])) ? $_SERVER['HTTP_REFERER'] : '';
+		$request_uri = urldecode($_SERVER['REQUEST_URI']);
+		$http_referer = (isset($_SERVER['HTTP_REFERER']) && !empty($_SERVER['HTTP_REFERER'])) ? urldecode($_SERVER['HTTP_REFERER']) : '';
 		$remote_ip = (isset($_SERVER['REMOTE_ADDR'])) ? $_SERVER['REMOTE_ADDR'] : '000.000.000.000';
 		$remote_host = gethostbyaddr($remote_ip);
 		if (ini_get('browscap')) {
