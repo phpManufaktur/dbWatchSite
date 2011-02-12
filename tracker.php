@@ -256,9 +256,16 @@ class errorTracker {
 			'ignore_link'				=> sprintf('%s/index.php?sw=ei&idx=%d&key=%s', WB_URL, $base404[dbWatchSite404base::field_id], $base404[dbWatchSite404base::field_verification]),
 			'lock_link'					=> sprintf('%s/index.php?sw=xl&idx=%d&key=%s', WB_URL, $base404[dbWatchSite404base::field_id], $base404[dbWatchSite404base::field_verification])
 		);
-		$body = $parser->get($this->language_path.LANGUAGE.'.mail.404.htt', $data);
+		if (file_exists($this->language_path.LANGUAGE.'.mail.404.htt'))  {
+			// language file exists
+			$body = $parser->get($this->language_path.LANGUAGE.'.mail.404.htt', $data);
+		}
+		else {
+			// use the default DE file...
+			$body = $parser->get($this->language_path.'DE.mail.404.htt', $data);
+		}
 		$body .= sprintf(	'<div style="padding: 15px 0 0 0;font-size:9pt;text-align:center;color:#800000;background-color:transparent;"><b>dbWatchSite</b> v%s - &copy %d by phpManufaktur - Ralf Hertsch, Berlin (Germany)<br /><a href="http://phpmanufaktur.de">http://phpManufaktur.de</a> - <a href="mailto:ralf.hertsch@phpmanufaktur.de">ralf.hertsch@phpManufaktur.de</a> - <i>+49 (0)30 68813647</i></div>', 
-											$this->getVersion(), date('Y'));
+											$this->getVersion(), date('Y'));											
 		$subject = sprintf(ws_mail_subject_404, $server_name);
 		foreach ($emails as $email) {
 			if (!$wb->mail('', $email, $subject, $body)) {

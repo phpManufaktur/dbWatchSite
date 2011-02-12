@@ -15,6 +15,8 @@ if (!defined('WB_PATH')) die('invalid call of '.$_SERVER['SCRIPT_NAME']);
 
 class wsTools {
 	
+	private $old_pass = array();
+	
 	/**
    * Generiert ein neues Passwort der Laenge $length
    *
@@ -22,18 +24,23 @@ class wsTools {
    * @return STR
    */
   public function generatePassword($length=7) {
-		$new_pass = '';
-		$salt = 'abcdefghjkmnpqrstuvwxyz123456789';
-		srand((double)microtime()*1000000);
-		$i=0;
-		while ($i <= $length) {
-			$num = rand() % 33;
-			$tmp = substr($salt, $num, 1);
-			$new_pass = $new_pass . $tmp;
-			$i++; }
-		return $new_pass;
+    $r = array_merge(
+      range("a", "z"),
+      range("a", "z"),
+      range("A", "Z"),
+      range(1, 9),
+      range(1, 9)
+    );
+		$not = array_merge(
+			array('i', 'l', 'o', 'I','O'),
+			$this->old_pass
+		);		
+		$r = array_diff($r, $not);
+    shuffle($r);
+		$this->old_pass = array_slice($r, 0, intval($length) );
+    return implode("", $this->old_pass );
   } // generatePassword()
-
+	
   public function getDisplayName() {
   	return (isset($_SESSION['DISPLAY_NAME'])) ? $_SESSION['DISPLAY_NAME'] : 'SYSTEM';
   }

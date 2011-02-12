@@ -23,13 +23,18 @@ $PRECHECK['WB_ADDONS'] = array(
 );
 
 global $database;
-$sql = "SELECT * FROM ".TABLE_PREFIX."settings WHERE name='default_charset'";
+$sql = "SELECT `value` FROM `".TABLE_PREFIX."settings` WHERE `name`='default_charset'";
 $result = $database->query($sql);
 if ($result) {
-	$data = $result->fetchRow();
-	($data['value'] == 'utf-8') ? $status = true : $status = false;
+	$data = $result->fetchRow( MYSQL_ASSOC );
 	$PRECHECK['CUSTOM_CHECKS'] = array(
-    'Default Charset' => array('REQUIRED' => 'utf-8', 'ACTUAL' => $data['value'], 'STATUS' => $status));
+		'Default Charset' => array(
+			'REQUIRED' => 'utf-8',
+			'ACTUAL' => $data['value'],
+			'STATUS' => ($data['value'] === 'utf-8')
+		)
+	);
 }
+
 
 ?>

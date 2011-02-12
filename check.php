@@ -16,7 +16,7 @@ if ((isset($_REQUEST['sw'])) && (isset($_REQUEST['idx'])) && (isset($_REQUEST['k
 	$query = "SELECT * FROM ".TABLE_PREFIX."mod_ws_404_base WHERE base_id='".$_REQUEST['idx']."' AND base_verification='".$_REQUEST['key']."'";
 	if ((false !== ($result = $database->query($query))) && ($result->numRows() > 0)) { 
 		// ok - record exists
-		$data = $result->fetchRow();
+		$data = $result->fetchRow(MYSQL_ASSOC);
 		switch ($_REQUEST['sw']):
 		case 'ep':
 			$cat = 'error';
@@ -59,7 +59,7 @@ else {
 		if ($ipLockTime !== 0) {
 			$query = "SELECT * FROM ".TABLE_PREFIX."mod_ws_404_ip WHERE ip_remote_ip='".$_SERVER['REMOTE_ADDR']."'";
 			if ((false !== ($result = $database->query($query))) && ($result->numRows() > 0)) { 
-				$data = $result->fetchRow();
+				$data = $result->fetchRow(MYSQL_ASSOC);
 				if (($ipLockTime < 0) || ((strtotime($data['ip_locked_since'])+(60*$ipLockTime)) > time())) {  
 					// ip is permanent or temporary locked - update count
 					$query = "UPDATE ".TABLE_PREFIX."mod_ws_404_ip SET ip_count='".($data['ip_count']+1)."' WHERE ip_id='".$data['ip_id']."'";
