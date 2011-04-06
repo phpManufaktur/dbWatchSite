@@ -199,7 +199,7 @@ class toolWatchSite {
   	foreach ($_REQUEST as $key => $value) {
   		if (!in_array($key, $html_allowed)) {
   			// Sonderfall: Value Felder der Konfiguration werden durchnummeriert und duerfen HTML enthalten...
-  			if (strpos($key, dbWatchSiteCfg::field_value) != 0) {
+  			if (strpos($key, dbWatchSiteCfg::field_value) == false) {
     			$_REQUEST[$key] = $this->xssPrevent($value);
   			}
   		} 
