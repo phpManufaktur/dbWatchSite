@@ -24,4 +24,4 @@ Please visit the [phpManufaktur] [4] to get more informations about **dbWatchSit
 [4]: http://phpmanufaktur.de/cms/topics/dbwatchsite-security.php
 [5]: https://phpmanufaktur.de/support
 [6]: https://addons.phpmanufaktur.de/download.php?file=dbConnect_LE
-[6]: https://addons.phpmanufaktur.de/download.php?file=Dwoo
+[7]: https://addons.phpmanufaktur.de/download.php?file=Dwoo
