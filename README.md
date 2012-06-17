@@ -1,6 +1,6 @@
 ### dbWatchSite
 
- and the Content Management Systems [WebsiteBaker] [1] or [LEPTON CMS] [2]. 
+Watch and protect your website - a system tool for the Content Management Systems [WebsiteBaker] [1] and [LEPTON CMS] [2]. 
 
 #### Requirements
 
