@@ -2,31 +2,47 @@
 
 /**
  * dbWatchSite
- * 
- * @author Ralf Hertsch (ralf.hertsch@phpmanufaktur.de)
+ *
+ * @author Ralf Hertsch <ralf.hertsch@phpmanufaktur.de>
  * @link http://phpmanufaktur.de
- * @copyright 2010
- * @license GNU GPL (http://www.gnu.org/licenses/gpl.html)
- * @version $Id$
+ * @copyright 2010 - 2012
+ * @license MIT License (MIT) http://www.opensource.org/licenses/MIT
  */
 
-// prevent this file from being accesses directly
-if(defined('WB_PATH') == false) {
-  exit("Cannot access this file directly");
+// include class.secure.php to protect this file and the whole CMS!
+if (defined('WB_PATH')) {
+  if (defined('LEPTON_VERSION'))
+    include(WB_PATH.'/framework/class.secure.php');
 }
+else {
+  $oneback = "../";
+  $root = $oneback;
+  $level = 1;
+  while (($level < 10) && (!file_exists($root.'/framework/class.secure.php'))) {
+    $root .= $oneback;
+    $level += 1;
+  }
+  if (file_exists($root.'/framework/class.secure.php')) {
+    include($root.'/framework/class.secure.php');
+  }
+  else {
+    trigger_error(sprintf("[ <b>%s</b> ] Can't include class.secure.php!", $_SERVER['SCRIPT_NAME']), E_USER_ERROR);
+  }
+}
+// end include class.secure.php
 
 require_once(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/initialize.php');
 
 class dbWatchSiteDirectory extends dbConnectLE {
-	
+
 	const field_id					= 'dir_id';
 	const field_path				= 'dir_path';
 	const field_checksum		= 'dir_checksum';
 	const field_files				= 'dir_files';
 	const field_timestamp		= 'dir_timestamp';
-	
+
 	private $createTables 	= false;
-	
+
 	public function __construct($createTables = false) {
   	$this->createTables = $createTables;
   	parent::__construct();
@@ -45,12 +61,12 @@ class dbWatchSiteDirectory extends dbConnectLE {
   			}
   		}
   	}
-  } // __construct()  
-	
+  } // __construct()
+
 } // class dbWatchSiteDirectory
 
 class dbWatchSiteFiles extends dbConnectLE {
-	
+
 	const field_id					= 'file_id';
 	const field_path				= 'file_path';
 	const field_file				= 'file_file';
@@ -58,9 +74,9 @@ class dbWatchSiteFiles extends dbConnectLE {
 	const field_file_size		= 'file_size';
 	const field_last_change	= 'file_last_change';
 	const field_timestamp		= 'file_timestamp';
-	
+
 	private $createTables 	= false;
-	
+
 	public function __construct($createTables = false) {
   	$this->createTables = $createTables;
   	parent::__construct();
@@ -82,45 +98,45 @@ class dbWatchSiteFiles extends dbConnectLE {
   			}
   		}
   	}
-  } // __construct()  
-	
+  } // __construct()
+
 } // class dbWatchSiteFiles
 
 class dbWatchSiteLog extends dbConnectLE {
-	
+
 	const field_id					= 'log_id';
 	const field_category		= 'log_category';
 	const field_group				= 'log_group';
 	const field_info				= 'log_info';
 	const field_description	= 'log_description';
 	const field_timestamp		= 'log_timestamp';
-	
+
 	const category_info			= 'info';
 	const category_warning	= 'warning';
 	const category_error		= 'error';
 	const category_hint			= 'hint';
-	
+
 	public $category_array = array(
 		self::category_error			=> ws_category_error,
 		self::category_hint				=> ws_category_hint,
 		self::category_info				=> ws_category_info,
 		self::category_warning		=> ws_category_warning
 	);
-	
+
 	const group_directory		= 'directory';
 	const group_file				= 'file';
 	const group_cronjob			= 'cronjob';
 	const group_report			= 'report';
-	
+
 	public $group_array = array(
 		self::group_directory			=> ws_group_directory,
 		self::group_file					=> ws_group_file,
 		self::group_cronjob				=> ws_group_cronjob,
 		self::group_report				=> ws_group_report
 	);
-	
+
 	private $createTables 	= false;
-	
+
 	public function __construct($createTables = false) {
   	$this->createTables = $createTables;
   	parent::__construct();
@@ -141,42 +157,42 @@ class dbWatchSiteLog extends dbConnectLE {
   			}
   		}
   	}
-  } // __construct()  
-	
+  } // __construct()
+
 } // class dbWatchSiteLog
 
 class dbWatchSite404base extends dbConnectLE {
-	
+
 	const field_id						= 'base_id';
 	const field_request_uri		= 'base_request_uri';
   const field_category			= 'base_category';
-  const field_behaviour			=	'base_behaviour'; 
+  const field_behaviour			=	'base_behaviour';
   const field_count					= 'base_count';
   const field_verification	= 'base_verification';
   const field_timestamp			= 'base_timestamp';
-  
+
   const category_undefined		= 'undefined';
   const category_error				= 'error';
   const category_xss					= 'xss';
-  
+
   public $category_array = array(
   	self::category_undefined		=> ws_category_undefined,
   	self::category_error				=> ws_category_error,
   	self::category_xss					=> ws_category_xss,
   );
-	
+
   const behaviour_prompt			= 'prompt';
   const behaviour_lock				= 'lock';
   const behaviour_ignore			= 'ignore';
-  
+
   public $behaviour_array = array(
   	self::behaviour_prompt			=> ws_behaviour_prompt,
   	self::behaviour_lock				=> ws_behaviour_lock,
   	self::behaviour_ignore			=> ws_behaviour_ignore
   );
-  
+
   private $createTables 		= false;
-  
+
   public function __construct($createTables = false) {
   	$this->createTables = $createTables;
   	parent::__construct();
@@ -197,12 +213,12 @@ class dbWatchSite404base extends dbConnectLE {
   			}
   		}
   	}
-  } // __construct()  
-	
+  } // __construct()
+
 } // class dbWatchSite404base
 
 class dbWatchSite404log extends dbConnectLE {
-	
+
 	const field_id						= 'log_id';
 	const field_request_uri		= 'log_request_uri';
 	const field_referer				= 'log_referer';
@@ -210,9 +226,9 @@ class dbWatchSite404log extends dbConnectLE {
 	const field_remote_host		= 'log_remote_host';
 	const field_user_agent		= 'log_user_agent';
 	const field_timestamp			= 'log_timestamp';
-	
+
 	private $createTables 		= false;
-	
+
 	public function __construct($createTables = false) {
   	$this->createTables = $createTables;
   	parent::__construct();
@@ -233,20 +249,20 @@ class dbWatchSite404log extends dbConnectLE {
   			}
   		}
   	}
-  } // __construct()  
-	
+  } // __construct()
+
 } // class dbWatchSite404log
 
 class dbWatchSite404ip extends dbConnectLE {
-	
+
 	const field_id						= 'ip_id';
 	const field_remote_ip			= 'ip_remote_ip';
 	const field_locked_since	= 'ip_locked_since';
 	const field_count					= 'ip_count';
 	const field_timestamp			= 'ip_timestamp';
-	
+
 	private $createTables 		= false;
-	
+
 	public function __construct($createTables = false) {
   	$this->createTables = $createTables;
   	parent::__construct();
@@ -266,18 +282,18 @@ class dbWatchSite404ip extends dbConnectLE {
   			}
   		}
   	}
-  } // __construct()  
-	
+  } // __construct()
+
 } // class dbWatchSite404ip
 
 class dbWatchSite404error extends dbConnectLE {
-	
+
 	const field_id						= 'cj_error_id';
 	const field_error					= 'cj_error_str';
 	const field_timestamp			= 'cj_error_stamp';
-	
+
 	public $create_tables = false;
-	
+
 	function __construct($create_tables=false) {
 		parent::__construct();
 		$this->create_tables = $create_tables;
@@ -295,10 +311,10 @@ class dbWatchSite404error extends dbConnectLE {
 					return false;
 				}
 			}
-		}	
+		}
 		return true;
 	} // __construct()
-	
+
 } // class dbWatchSite404error
 
 

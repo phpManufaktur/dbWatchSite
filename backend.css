@@ -1,16 +1,13 @@
 /**
  * dbWatchSite
  *
- * @author Ralf Hertsch (ralf.hertsch@phpmanufaktur.de)
+ * @author Ralf Hertsch <ralf.hertsch@phpmanufaktur.de>
  * @link http://phpmanufaktur.de
- * @copyright 2010
- * @license GNU GPL (http://www.gnu.org/licenses/gpl.html)
- * @version $Id$
+ * @copyright 2010 - 2012
+ * @license MIT License (MIT) http://www.opensource.org/licenses/MIT
  */
 
-
-td
-{
+td {
   font-size: 8pt;
   vertical-align: top;
 }

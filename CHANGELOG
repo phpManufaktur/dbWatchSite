@@ -1,0 +1,24 @@
+### dbWatchSite
+2010-2012 by phpManufaktur, Berlin (Germany)
+ralf.hertsch@phpmanufaktur.de
+http://phpmanufaktur.de
+
+Release 0.12 - 2012-06-17
+
+* fixed problem getting/setting times for creating cronjob reports
+* fixed compatibility problem with WebsiteBaker 2.8.3
+* rewrite all header informations
+* changed license to MIT License (MIT)
+* added LICENSE
+* added CHANGELOG
+* added README.md
+* removed info.txt
+
+Release 0.11 - 2010-12-19
+
+* Second BETA Release
+* Added 404 features
+
+Release 0.10 - 2010-12-14
+
+* initial release

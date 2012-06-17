@@ -2,18 +2,34 @@
 
 /**
  * dbWatchSite
- * 
- * @author Ralf Hertsch (ralf.hertsch@phpmanufaktur.de)
+ *
+ * @author Ralf Hertsch <ralf.hertsch@phpmanufaktur.de>
  * @link http://phpmanufaktur.de
- * @copyright 2010
- * @license GNU GPL (http://www.gnu.org/licenses/gpl.html)
- * @version $Id$
+ * @copyright 2010 - 2012
+ * @license MIT License (MIT) http://www.opensource.org/licenses/MIT
  */
 
-// prevent this file from being accesses directly
-if(defined('WB_PATH') == false) {
-  exit("Cannot access this file directly");
+// include class.secure.php to protect this file and the whole CMS!
+if (defined('WB_PATH')) {
+  if (defined('LEPTON_VERSION'))
+    include(WB_PATH.'/framework/class.secure.php');
 }
+else {
+  $oneback = "../";
+  $root = $oneback;
+  $level = 1;
+  while (($level < 10) && (!file_exists($root.'/framework/class.secure.php'))) {
+    $root .= $oneback;
+    $level += 1;
+  }
+  if (file_exists($root.'/framework/class.secure.php')) {
+    include($root.'/framework/class.secure.php');
+  }
+  else {
+    trigger_error(sprintf("[ <b>%s</b> ] Can't include class.secure.php!", $_SERVER['SCRIPT_NAME']), E_USER_ERROR);
+  }
+}
+// end include class.secure.php
 
 require_once(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/initialize.php');
 require_once(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/class.cronjob.php');
@@ -44,12 +60,12 @@ $tool = new toolWatchSite();
 $tool->action();
 
 class toolWatchSite {
-	
+
 	const request_action 						= 'act';
 	const request_items							= 'its';
 	const request_subaction					= 'sub';
 	const request_tab								= 'tab';
-	
+
 	const action_404								= '404';
 	const action_404_log						= '4log';
 	const action_404_basis					= '4bas';
@@ -63,41 +79,41 @@ class toolWatchSite {
 	const action_log								= 'log';
 	const action_log_tab_watch			= 'ltw';
 	const action_log_tab_error			= 'lte';
-	
+
 	private $tab_navigation_array = array(
 		self::action_log								=> ws_tab_log,
 		self::action_404								=> ws_tab_404,
 		self::action_config							=> ws_tab_config,
 		self::action_about							=> ws_tab_about
 	);
-	
+
 	private $tab_watch_array = array(
 		self::action_log_tab_watch			=> ws_tab_watch_log,
 		self::action_log_tab_error			=> ws_tab_watch_error
 	);
-	
+
 	private $tab_404_array = array(
 		self::action_404_log						=> ws_tab_404_log,
 		self::action_404_basis					=> ws_tab_404_basis,
 		self::action_404_ips						=> ws_tab_404_ips,
 		self::action_404_error					=> ws_tab_404_error
 	);
-	
+
 	private $page_link 					= '';
 	private $img_url						= '';
 	private $template_path			= '';
 	private $error							= '';
 	private $message						= '';
-	
+
 	public function __construct() {
 		$this->page_link = ADMIN_URL.'/admintools/tool.php?tool=watch_site';
 		$this->template_path = WB_PATH . '/modules/' . basename(dirname(__FILE__)) . '/htt/' ;
 		$this->img_url = WB_URL. '/modules/'.basename(dirname(__FILE__)).'/img/';
 	} // __construct()
-	
+
 	/**
     * Set $this->error to $error
-    * 
+    *
     * @param STR $error
     */
   public function setError($error) {
@@ -106,7 +122,7 @@ class toolWatchSite {
 
   /**
     * Get Error from $this->error;
-    * 
+    *
     * @return STR $this->error
     */
   public function getError() {
@@ -115,7 +131,7 @@ class toolWatchSite {
 
   /**
     * Check if $this->error is empty
-    * 
+    *
     * @return BOOL
     */
   public function isError() {
@@ -130,7 +146,7 @@ class toolWatchSite {
   }
 
   /** Set $this->message to $message
-    * 
+    *
     * @param STR $message
     */
   public function setMessage($message) {
@@ -139,7 +155,7 @@ class toolWatchSite {
 
   /**
     * Get Message from $this->message;
-    * 
+    *
     * @return STR $this->message
     */
   public function getMessage() {
@@ -148,13 +164,13 @@ class toolWatchSite {
 
   /**
     * Check if $this->message is empty
-    * 
+    *
     * @return BOOL
     */
   public function isMessage() {
     return (bool) !empty($this->message);
   } // isMessage
-  
+
   /**
    * Return Version of Module
    *
@@ -164,7 +180,7 @@ class toolWatchSite {
     // read info.php into array
     $info_text = file(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/info.php');
     if ($info_text == false) {
-      return -1; 
+      return -1;
     }
     // walk through array
     foreach ($info_text as $item) {
@@ -173,14 +189,14 @@ class toolWatchSite {
         $value = explode('=', $item);
         // return floatval
         return floatval(preg_replace('([\'";,\(\)[:space:][:alpha:]])', '', $value[1]));
-      } 
+      }
     }
     return -1;
   } // getVersion()
-  
+
   /**
    * Verhindert XSS Cross Site Scripting
-   * 
+   *
    * @param REFERENCE $_REQUEST Array
    * @return $request
    */
@@ -193,7 +209,7 @@ class toolWatchSite {
   	}
 	  return $request;
   } // xssPrevent()
-	
+
   public function action() {
   	$html_allowed = array();
   	foreach ($_REQUEST as $key => $value) {
@@ -202,7 +218,7 @@ class toolWatchSite {
   			if (strpos($key, dbWatchSiteCfg::field_value) == false) {
     			$_REQUEST[$key] = $this->xssPrevent($value);
   			}
-  		} 
+  		}
   	}
     isset($_REQUEST[self::request_action]) ? $action = $_REQUEST[self::request_action] : $action = self::action_default;
   	switch ($action):
@@ -224,19 +240,19 @@ class toolWatchSite {
   		break;
   	endswitch;
   } // action
-	
-  	
+
+
   /**
    * Erstellt eine Navigationsleiste
-   * 
+   *
    * @param $action - aktives Navigationselement
    * @return STR Navigationsleiste
    */
   public function getNavigation($action) {
   	$result = '';
   	foreach ($this->tab_navigation_array as $key => $value) {
-   		($key == $action) ? $selected = ' class="selected"' : $selected = ''; 
-	 		$result .= sprintf(	'<li%s><a href="%s">%s</a></li>', 
+   		($key == $action) ? $selected = ' class="selected"' : $selected = '';
+	 		$result .= sprintf(	'<li%s><a href="%s">%s</a></li>',
 	 												$selected,
 	 												sprintf('%s&%s=%s', $this->page_link, self::request_action, $key),
 	 												$value
@@ -245,13 +261,13 @@ class toolWatchSite {
   	$result = sprintf('<ul class="nav_tab">%s</ul>', $result);
   	return $result;
   } // getNavigation()
-  
+
   /**
    * Ausgabe des formatierten Ergebnis mit Navigationsleiste
-   * 
+   *
    * @param $action - aktives Navigationselement
    * @param $content - Inhalt
-   * 
+   *
    * @return ECHO RESULT
    */
   public function show($action, $content) {
@@ -270,10 +286,10 @@ class toolWatchSite {
   	);
   	$parser->output($this->template_path.'backend.body.htt', $data);
   } // show()
-	
+
 	/**
 	 * Konfigurationsdialg fuer die allgemeinen Einstellungen
-	 * 
+	 *
 	 * @return STR DIALOG dlgConfigGeneral()
 	 */
 	public function dlgConfig() {
@@ -300,10 +316,10 @@ class toolWatchSite {
 			$id = $entry[dbWatchSiteCfg::field_id];
 			$count[] = $id;
 			$label = constant($entry[dbWatchSiteCfg::field_label]);
-			(isset($_REQUEST[dbWatchSiteCfg::field_value.'_'.$id])) ? 
-				$val = $_REQUEST[dbWatchSiteCfg::field_value.'_'.$id] : 
+			(isset($_REQUEST[dbWatchSiteCfg::field_value.'_'.$id])) ?
+				$val = $_REQUEST[dbWatchSiteCfg::field_value.'_'.$id] :
 				$val = $entry[dbWatchSiteCfg::field_value];
-				// Hochkommas maskieren 
+				// Hochkommas maskieren
 				$val = str_replace('"', '&quot;', stripslashes($val));
 			$value = sprintf(	'<input type="text" name="%s_%s" value="%s" />', dbWatchSiteCfg::field_value, $id,	$val);
 			$desc = constant($entry[dbWatchSiteCfg::field_description]);
@@ -316,7 +332,7 @@ class toolWatchSite {
 		}
 		else {
 			$intro = sprintf('<div class="intro">%s</div>', ws_intro_cfg);
-		}		
+		}
 		$data = array(
 			'form_name'						=> 'konfiguration',
 			'form_action'					=> $this->page_link,
@@ -333,12 +349,12 @@ class toolWatchSite {
 		);
 		return $parser->get($this->template_path.'backend.cfg.htt', $data);
 	} // dlgConfig()
-	
+
 	/**
 	 * Ueberprueft Aenderungen die im Dialog dlgConfig() vorgenommen wurden
 	 * und aktualisiert die entsprechenden Datensaetze.
 	 * Fuegt neue Datensaetze ein.
-	 * 
+	 *
 	 * @return STR DIALOG dlgConfig()
 	 */
 	public function checkConfig() {
@@ -352,7 +368,7 @@ class toolWatchSite {
 				if (isset($_REQUEST[dbWatchSiteCfg::field_value.'_'.$id])) {
 					$value = $_REQUEST[dbWatchSiteCfg::field_value.'_'.$id];
 					$where = array();
-					$where[dbWatchSiteCfg::field_id] = $id; 
+					$where[dbWatchSiteCfg::field_id] = $id;
 					$config = array();
 					if (!$dbWScfg->sqlSelectRecord($where, $config)) {
 						$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbWScfg->getError()));
@@ -378,8 +394,8 @@ class toolWatchSite {
 							}
 					}
 				}
-			}		
-		}		
+			}
+		}
 		// ueberpruefen, ob ein neuer Eintrag hinzugefuegt wurde
 		if ((isset($_REQUEST[dbWatchSiteCfg::field_name])) && (!empty($_REQUEST[dbWatchSiteCfg::field_name]))) {
 			// pruefen ob dieser Konfigurationseintrag bereits existiert
@@ -419,9 +435,9 @@ class toolWatchSite {
 					$id = -1;
 					if (!$dbWScfg->sqlInsertRecord($data, $id)) {
 						$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbWScfg->getError()));
-						return false; 
+						return false;
 					}
-					$message .= sprintf(ws_msg_cfg_add_success, $id, $data[dbWatchSiteCfg::field_name]);		
+					$message .= sprintf(ws_msg_cfg_add_success, $id, $data[dbWatchSiteCfg::field_name]);
 				}
 				else {
 					// Daten unvollstaendig
@@ -432,7 +448,7 @@ class toolWatchSite {
 		if (!empty($message)) $this->setMessage($message);
 		return $this->dlgConfig();
 	} // checkConfig()
-    
+
 	/**
    *
    * @return STR dialog
@@ -461,17 +477,17 @@ class toolWatchSite {
 			break;
   	endswitch;
   	$result = sprintf('<div class="log_container">%s%s</div>', $tab, $result);
-  	return $result;  	
+  	return $result;
 	} // dlgLog()
-	
-	
+
+
   public function dlgLogWatch() {
   	global $dbLog;
   	global $dbWScfg;
   	global $parser;
   	global $dbCronjobData;
-  	
-  	$group = ($dbWScfg->getValue(dbWatchSiteCfg::cfgLogCronjobExecTime) == false) ? sprintf(" WHERE %s!='%s'", dbWatchSiteLog::field_group,	dbWatchSiteLog::group_cronjob) : ''; 
+
+  	$group = ($dbWScfg->getValue(dbWatchSiteCfg::cfgLogCronjobExecTime) == false) ? sprintf(" WHERE %s!='%s'", dbWatchSiteLog::field_group,	dbWatchSiteLog::group_cronjob) : '';
   	$SQL = sprintf(	"SELECT * FROM %s%s ORDER BY %s DESC LIMIT %d",
   									$dbLog->getTableName(),
   									$group,
@@ -484,7 +500,7 @@ class toolWatchSite {
   	}
   	$row = new Dwoo_Template_File($this->template_path.'backend.log.row.htt');
   	$items = '';
-  	
+
   	$flipflop = true;
 		foreach ($logs as $log) {
 			$flipflop ? $flipper = 'flip' : $flipper = 'flop';
@@ -499,7 +515,7 @@ class toolWatchSite {
 			);
 			$items .= $parser->get($row, $data);
 		}
-		
+
 		$where = array(dbCronjobData::field_item => dbCronjobData::item_last_call);
 		$data = array();
 		if (!$dbCronjobData->sqlSelectRecord($where, $data)) {
@@ -519,7 +535,7 @@ class toolWatchSite {
 		else {
 			$intro = sprintf('<div class="intro">%s</div>', $intro);
 		}
-		
+
 		$data = array(
 			'header'		=> ws_header_log,
 			'intro'			=> $intro,
@@ -527,24 +543,24 @@ class toolWatchSite {
 		);
 		return $parser->get($this->template_path.'backend.log.htt', $data);
   } // dlgLogWatch()
-  
+
   public function dlgLogError() {
   	global $dbCronjobErrorLog;
   	global $parser;
-  	
+
   	$SQL = sprintf(	"SELECT * FROM %s ORDER BY %s DESC",
   									$dbCronjobErrorLog->getTableName(),
-  									dbCronjobErrorLog::field_timestamp 
+  									dbCronjobErrorLog::field_timestamp
   								);
   	$logs = array();
  		if (!$dbCronjobErrorLog->sqlExec($SQL, $logs)) {
  			$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbCronjobErrorLog->getError()));
  			return false;
  		}
- 		
+
  		$row = new Dwoo_Template_File($this->template_path.'backend.log.error.row.htt');
   	$items = '';
-  	
+
   	$flipflop = true;
 		foreach ($logs as $log) {
 			$flipflop ? $flipper = 'flip' : $flipper = 'flop';
@@ -556,7 +572,7 @@ class toolWatchSite {
  			);
  			$items .= $parser->get($row, $data);
 		}
-		
+
 		if (empty($items)) {
 			// es liegen keine Fehlermeldungen vor
 			$intro = sprintf('<div class="intro">%s</div>', ws_intro_log_no_error);
@@ -571,17 +587,17 @@ class toolWatchSite {
 		);
 		return $parser->get($this->template_path.'backend.log.error.htt', $data);
   } // dlgLogError()
-  
+
   public function dlgAbout() {
   	global $parser;
   	$data = array(
   		'version'					=> $this->getVersion(),
   		'img_url'					=> WB_URL.'/modules/'.basename(dirname(__FILE__)).'/img/dbWatchSite_600.jpg',
-  		'release_notes'		=> file_get_contents(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/info.txt'),
+  		'release_notes'		=> file_get_contents(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/CHANGELOG'),
   	);
   	return $parser->get($this->template_path.'backend.about.htt', $data);
   } // dlgAbout()
-  
+
   public function dlg404() {
   	$tab = '';
   	(isset($_REQUEST[self::request_tab])) ? $action = $_REQUEST[self::request_tab] : $action = self::action_404_log;
@@ -616,14 +632,14 @@ class toolWatchSite {
 			break;
   	endswitch;
   	$result = sprintf('<div class="log_container">%s%s</div>', $tab, $result);
-  	return $result;  	  	
+  	return $result;
   } // dlg404()
-  
+
   public function dlg404protocol() {
   	global $db404log;
   	global $dbWScfg;
   	global $parser;
-  	
+
   	$SQL = sprintf(	"SELECT * FROM %s ORDER BY %s DESC LIMIT %d",
   									$db404log->getTableName(),
   									dbWatchSite404log::field_id,
@@ -635,7 +651,7 @@ class toolWatchSite {
   	}
   	$row = new Dwoo_Template_File($this->template_path.'backend.404.log.row.htt');
   	$items = '';
-  	
+
   	$flipflop = true;
 		foreach ($logs as $log) {
 			$flipflop ? $flipper = 'flip' : $flipper = 'flop';
@@ -659,12 +675,12 @@ class toolWatchSite {
 		);
 		return $parser->get($this->template_path.'backend.404.log.htt', $data);
   } // dlg404protocoll()
-  
+
   public function dlg404base() {
   	global $db404base;
   	global $parser;
   	global $dbWScfg;
-  	
+
   	$SQL = sprintf( "SELECT * FROM %s ORDER BY %s DESC LIMIT %d",
   									$db404base->getTableName(),
   									dbWatchSite404base::field_id,
@@ -676,7 +692,7 @@ class toolWatchSite {
   	}
   	$row = new Dwoo_Template_File($this->template_path.'backend.404.base.row.htt');
   	$items = '';
-  	
+
   	$data = array(
   		'timestamp'				=> ws_header_timestamp,
   		'count'						=> ws_header_calls,
@@ -685,32 +701,32 @@ class toolWatchSite {
   		'behaviour'				=> ws_header_behaviour
   	);
   	$items .= $parser->get($this->template_path.'backend.404.base.header.htt', $data);
-  	
+
   	$id_array = array();
-  	
+
   	$flipflop = true;
 		foreach ($entries as $entry) {
 			$flipflop ? $flipper = 'flip' : $flipper = 'flop';
   		$flipflop ? $flipflop = false : $flipflop = true;
   		// add ID to id_array
   		$id_array[] = $entry[dbWatchSite404base::field_id];
-  		
+
   		// category
 			$category = '';
 			foreach ($db404base->category_array as $key => $value) {
 				($key == $entry[dbWatchSite404base::field_category]) ? $selected = ' selected="selected"' : $selected = '';
-				$category .= sprintf('<option value="%s"%s>%s</option>', $key, $selected, $value); 
-			}		
+				$category .= sprintf('<option value="%s"%s>%s</option>', $key, $selected, $value);
+			}
 			$category = sprintf('<select name="%s_%d">%s</select>', dbWatchSite404base::field_category, $entry[dbWatchSite404base::field_id], $category);
-		
+
 			// behaviour
 			$behaviour = '';
 			foreach ($db404base->behaviour_array as $key => $value) {
 				($key == $entry[dbWatchSite404base::field_behaviour]) ? $selected = ' selected="selected"' : $selected = '';
-				$behaviour .= sprintf('<option value="%s"%s>%s</option>', $key, $selected, $value); 
-			}		
+				$behaviour .= sprintf('<option value="%s"%s>%s</option>', $key, $selected, $value);
+			}
 			$behaviour = sprintf('<select name="%s_%d">%s</select>', dbWatchSite404base::field_behaviour, $entry[dbWatchSite404base::field_id], $behaviour);
-			
+
 			$data = array(
 				'flipflop'			=> $flipper,
 				'timestamp'			=> date(ws_cfg_date_time, strtotime($entry[dbWatchSite404base::field_timestamp])),
@@ -721,7 +737,7 @@ class toolWatchSite {
 			);
 			$items .= $parser->get($row, $data);
 		}
-		
+
 		// show messages
 		if ($this->isMessage()) {
 			$intro = sprintf('<div class="message">%s</div>', $this->getMessage());
@@ -729,7 +745,7 @@ class toolWatchSite {
 		else {
 			$intro = sprintf('<div class="intro">%s</div>', ws_intro_404_base);
 		}
-		
+
 		$data = array(
 			'form_name'				=> 'wsb_form',
 			'form_action'			=> $this->page_link,
@@ -750,11 +766,11 @@ class toolWatchSite {
 		);
 		return $parser->get($this->template_path.'backend.404.base.htt', $data);
   } // dlg404basis()
-  
+
   private function check404base() {
   	global $db404base;
   	if ((!isset($_REQUEST[self::request_items])) || (empty($_REQUEST[self::request_items]))) return $this->dlg404base();
-  	
+
   	$SQL = sprintf( "SELECT * FROM %s WHERE %s IN (%s)",
   									$db404base->getTableName(),
   									dbWatchSite404base::field_id,
@@ -766,7 +782,7 @@ class toolWatchSite {
   	}
   	$base_changed = false;
   	foreach ($bases as $base) {
-  		if ((isset($_REQUEST[dbWatchSite404base::field_category.'_'.$base[dbWatchSite404base::field_id]])) && 
+  		if ((isset($_REQUEST[dbWatchSite404base::field_category.'_'.$base[dbWatchSite404base::field_id]])) &&
   				(isset($_REQUEST[dbWatchSite404base::field_behaviour.'_'.$base[dbWatchSite404base::field_id]]))) {
   			if (($_REQUEST[dbWatchSite404base::field_category.'_'.$base[dbWatchSite404base::field_id]] !== $base[dbWatchSite404base::field_category]) ||
   					($_REQUEST[dbWatchSite404base::field_behaviour.'_'.$base[dbWatchSite404base::field_id]] !== $base[dbWatchSite404base::field_behaviour])) {
@@ -776,25 +792,25 @@ class toolWatchSite {
   				$data = array(
   					dbWatchSite404base::field_behaviour => $_REQUEST[dbWatchSite404base::field_behaviour.'_'.$base[dbWatchSite404base::field_id]],
   					dbWatchSite404base::field_category	=> $_REQUEST[dbWatchSite404base::field_category.'_'.$base[dbWatchSite404base::field_id]]
-  				);			
+  				);
   				if (!$db404base->sqlUpdateRecord($data, $where)) {
   					$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $db404base->getError()));
   					return false;
   				}
-  			}	
-  		}	
+  			}
+  		}
   	}
   	if ($base_changed) $this->setMessage(ws_msg_base_404_changed);
   	return $this->dlg404base();
   } // check404base()
-  
+
   public function dlg404ips() {
   	global $db404ip;
   	global $parser;
   	global $dbWScfg;
-  	
+
   	$lock_time = $dbWScfg->getValue(dbWatchSiteCfg::cfg404LockIpTime);
-  	
+
   	if ($lock_time == 0) {
   		// dont lock any ip...
   		$data = array(
@@ -804,7 +820,7 @@ class toolWatchSite {
 			);
 			return $parser->get($this->template_path.'backend.404.ip.htt', $data);
   	}
-  	
+
  		if ($lock_time < 0) {
  			// locked permanent
  			$SQL = sprintf( "SELECT * FROM %s ORDER BY %s DESC",
@@ -836,7 +852,7 @@ class toolWatchSite {
  		}
  		$row = new Dwoo_Template_File($this->template_path.'backend.404.ip.row.htt');
   	$items = '';
-  	
+
   	$flipflop = true;
 		foreach ($ips as $ip) {
 			$flipflop ? $flipper = 'flip' : $flipper = 'flop';
@@ -864,24 +880,24 @@ class toolWatchSite {
 		);
 		return $parser->get($this->template_path.'backend.404.ip.htt', $data);
   } // dlg404ips()
-  
+
   public function dlg404error() {
   	global $db404error;
   	global $parser;
-  	
+
   	$SQL = sprintf(	"SELECT * FROM %s ORDER BY %s DESC",
   									$db404error->getTableName(),
-  									dbWatchSite404error::field_timestamp 
+  									dbWatchSite404error::field_timestamp
   								);
   	$logs = array();
  		if (!$db404error->sqlExec($SQL, $logs)) {
  			$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $db404error->getError()));
  			return false;
  		}
- 		
+
  		$row = new Dwoo_Template_File($this->template_path.'backend.404.error.row.htt');
   	$items = '';
-  	
+
   	$flipflop = true;
 		foreach ($logs as $log) {
 			$flipflop ? $flipper = 'flip' : $flipper = 'flop';
@@ -893,7 +909,7 @@ class toolWatchSite {
  			);
  			$items .= $parser->get($row, $data);
 		}
-		
+
 		if (empty($items)) {
 			// es liegen keine Fehlermeldungen vor
 			$intro = sprintf('<div class="intro">%s</div>', ws_intro_404_no_error);
@@ -908,7 +924,7 @@ class toolWatchSite {
 		);
 		return $parser->get($this->template_path.'backend.404.error.htt', $data);
   } // dlg404error()
-  
+
 } // class toolWatchSite
 
 ?>

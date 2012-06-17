@@ -2,12 +2,11 @@
 
 /**
  * dbWatchSite
- * 
- * @author Ralf Hertsch (ralf.hertsch@phpmanufaktur.de)
+ *
+ * @author Ralf Hertsch <ralf.hertsch@phpmanufaktur.de>
  * @link http://phpmanufaktur.de
- * @copyright 2010
- * @license GNU GPL (http://www.gnu.org/licenses/gpl.html)
- * @version $Id$
+ * @copyright 2010 - 2012
+ * @license MIT License (MIT) http://www.opensource.org/licenses/MIT
  */
 
 // WebsiteBaker config.php einbinden
@@ -42,43 +41,43 @@ $cronjob = new cronjob();
 $cronjob->action();
 
 class cronjob {
-	
+
 	const request_key			= 'key';
-	
+
 	private $error = '';
 	private $start_script = 0;
 	private $dirTree = array();
-	
+
 	public function __construct() {
 		global $dbWScfg;
 		$this->start_script = time(true);
 	} // __construct()
-	
+
 	private function setError($error) {
 		global $dbCronjobErrorLog;
 		$this->error = $error;
 		// write simply to database - here is no chance to trigger additional errors...
 		$dbCronjobErrorLog->sqlInsertRecord(array(dbCronjobErrorLog::field_error => $error));
 	} // setError()
-	
+
 	private function getError() {
 		return $this->error;
 	} // getError()
-	
+
 	private function isError() {
     return (bool) !empty($this->error);
   } // isError
-	
+
   /**
    * Action Handler
-   * 
+   *
    */
 	public function action() {
 		global $dbCronjobData;
 		global $dbWScfg;
 		global $wsTools;
 		global $dbLog;
-		
+
 		if ($dbWScfg->getValue(dbWatchSiteCfg::cfgWatchSiteActive) == false) {
 			// dbWatchSite is inactive so leave the script immediate without logging...
 			exit(0);
@@ -92,7 +91,7 @@ class cronjob {
 		}
 		if (count($data) < 1) {
 			// entry does not exists, create default entries...
-			$datas = array(	array(dbCronjobData::field_item => dbCronjobData::item_last_call, dbCronjobData::field_value => ''), 
+			$datas = array(	array(dbCronjobData::field_item => dbCronjobData::item_last_call, dbCronjobData::field_value => ''),
 							 				array(dbCronjobData::field_item => dbCronjobData::item_last_report, dbCronjobData::field_value => ''),
 							 				array(dbCronjobData::field_item => dbCronjobData::item_next_report, dbCronjobData::field_value => '')
 							 				);
@@ -108,14 +107,14 @@ class cronjob {
 		if (!$dbCronjobData->sqlUpdateRecord($data, $where)) {
 			$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbCronjobData->getError()));
 			exit($this->getError());
-		} 
-		
+		}
+
 		// check if the access is allowed
 		$cronjob_key = $dbWScfg->getValue(dbWatchSiteCfg::cfgCronjobKey);
 		if (strlen($cronjob_key) < 3) {
 			// Cronjob Key does not exist, so create one...
 			$cronjob_key = $wsTools->generatePassword();
-			$dbWScfg->setValueByName($cronjob_key, dbWatchSiteCfg::cfgCronjobKey); 
+			$dbWScfg->setValueByName($cronjob_key, dbWatchSiteCfg::cfgCronjobKey);
 		}
 		if (!isset($_REQUEST[self::request_key]) || ($_REQUEST[self::request_key] !== $cronjob_key)) {
 			// Cronjob key does not match, log denied access...
@@ -124,11 +123,11 @@ class cronjob {
 			// dont give attacker any hint, so exit with regular code...
 			exit(0);
 		}
-		
+
 		// Exec the watch job...
 		$this->execWatchJob();
 		// check index files
-		$this->checkIndexFiles(); 
+		$this->checkIndexFiles();
 		// sending report?
 		$this->sendReport();
 		// Job beendet, Ausfuehrungszeit festhalten
@@ -139,7 +138,7 @@ class cronjob {
 		}
 		exit(0);
 	} // action()
-	
+
 	private function execWatchJob() {
 		global $dbCronjobData;
 		global $dbDir;
@@ -150,7 +149,7 @@ class cronjob {
 		// alle Verzeichnisse der Installation festhalten
 		$this->getDirectoryTree(WB_PATH.'/');
 		$actualDirectories = $this->dirTree;
-		
+
 		// Verzeichnisse aus der Datenbank auslesen
 		$where = array();
 		$wsDirectories = array();
@@ -189,7 +188,7 @@ class cronjob {
     						dbWatchSiteFiles::field_file_size		=> filesize(WB_PATH.$wsDirectory[dbWatchSiteDirectory::field_path].$file),
     						dbWatchSiteFiles::field_last_change	=> date('Y-m-d H:i:s', filemtime(WB_PATH.$wsDirectory[dbWatchSiteDirectory::field_path].$file)),
     						dbWatchSiteFiles::field_path				=> $wsDirectory[dbWatchSiteDirectory::field_path]
-    					); 	
+    					);
     				}
   				}
   				$where = array(
@@ -243,7 +242,7 @@ class cronjob {
 							$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, $dbFile->getError()));
 							exit($this->getError());
 						}
-					}					
+					}
 				} // Checksum unterschiedlich
 				// Schluessel loeschen
 				unset($actualDirectories[$key]);
@@ -302,12 +301,12 @@ class cronjob {
     				exit($this->getError());
     			}
     			$desc = sprintf(ws_log_desc_file_added, $actualDirectory.$file);
-    			$this->addLogEntry(dbWatchSiteLog::category_info, dbWatchSiteLog::group_file, ws_log_info_file_added, $desc); 	
+    			$this->addLogEntry(dbWatchSiteLog::category_info, dbWatchSiteLog::group_file, ws_log_info_file_added, $desc);
     		}
-  		}			
+  		}
 		}
 	} // execWatchJob()
-	
+
 	private function getDirectoryTree($directory) {
 		$dir = dir($directory);
     while (false !== ($entry = $dir->read())) {
@@ -319,11 +318,11 @@ class cronjob {
     $dir->close();
     return true;
 	} // getDirectoryTree()
-	
+
 	private function md5_directory($directory) {
 		return md5(implode(' ',array_map(create_function('$d','return is_dir($d)?$d:md5_file($d);'),glob(WB_PATH.$directory.'*'))));
 	}
-	
+
 	private function addLogEntry($category, $group, $info, $description) {
 		global $dbLog;
 		$data = array(
@@ -338,7 +337,7 @@ class cronjob {
 		}
 		return true;
 	} // addLogEntry()
-	
+
 	private function countFiles($directory) {
 		$handle = opendir(WB_PATH.$directory);
   	$count = 0;
@@ -350,26 +349,26 @@ class cronjob {
   	}
   	return $count;
 	} // countFiles();
-	
-	private function checkIndexFiles() { 
+
+	private function checkIndexFiles() {
 		global $dbWScfg;
 		if ($dbWScfg->getValue(dbWatchSiteCfg::cfgCheckIndexFiles)) {
 			$add_index = $dbWScfg->getValue(dbWatchSiteCfg::cfgAddIndexFiles);
 			$idx_file = file_get_contents(WB_PATH.'/modules/'.basename(dirname(__FILE__)).'/htt/index.php.htt');
 			// der Verzeichnisbaum wurde bereits von execWatchJob() ausgelesen
-			foreach ($this->dirTree as $dir) { 
-				if (!file_exists(WB_PATH.$dir.'index.php')) { 
+			foreach ($this->dirTree as $dir) {
+				if (!file_exists(WB_PATH.$dir.'index.php')) {
 					// missing index.php
 					$desc = sprintf(ws_log_desc_dir_index_missing, $dir);
 					$this->addLogEntry(dbWatchSiteLog::category_warning, dbWatchSiteLog::group_directory, ws_log_info_dir_index_missing, $desc);
-					if ($add_index) { 
+					if ($add_index) {
 						// insert missing index.php
 						$count = substr_count($dir, '/');
 						$idx = '';
 						for ($i=1; $i < $count; $i++) $idx .= '../';
 						$idx .= 'index.php';
 						$index_file = str_replace('{$relative_index}', $idx, $idx_file);
-						if (!file_put_contents(WB_PATH.$dir.'index.php', $index_file)) { 
+						if (!file_put_contents(WB_PATH.$dir.'index.php', $index_file)) {
 							// Error writing file
 							$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, sprintf(ws_error_cron_creating_index_file, $dir)));
 							// continue, dont break
@@ -383,7 +382,7 @@ class cronjob {
 			}
 		}
 	} // checkIndexFiles()
-	
+
 	private function sendReport() {
 		global $dbWScfg;
 		global $dbCronjobData;
@@ -433,7 +432,7 @@ class cronjob {
 					// error invalid time
 					$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, sprintf(ws_error_cron_time_invalid, $next_report[dbCronjobData::field_value])));
 					exit($this->getError());
-				} 
+				}
 				if ($now >= $next_time) {
 					// ok - send a report
 					$emails = $dbWScfg->getValue(dbWatchSiteCfg::cfgSendReportsToMail);
@@ -470,7 +469,7 @@ class cronjob {
 						}
 						$items = '';
 						foreach ($logs as $log) {
-							$items .= sprintf('%s - %s%s<br />', 
+							$items .= sprintf('%s - %s%s<br />',
 																date(ws_cfg_date_time, strtotime($log[dbWatchSiteLog::field_timestamp])),
 																($log[dbWatchSiteLog::field_category] == dbWatchSiteLog::category_warning) ? strtoupper($log[dbWatchSiteLog::field_category]).' - ' : '',
 																$log[dbWatchSiteLog::field_description]
@@ -511,8 +510,8 @@ class cronjob {
 						$this->setError(sprintf('[%s - %s] %s', __METHOD__, __LINE__, ws_error_cron_email_missing));
 						exit($this->getError());
 					}
-				}				
-				
+				}
+
 			} // count($times)
 			else {
 				// error: missing times
@@ -521,7 +520,7 @@ class cronjob {
 			}
 		}
 	} // sendReport()
-	
+
 	private function getNextReportExecutionTime($last_execution) {
 		global $dbWScfg;
 		// get the configured execution times
@@ -564,7 +563,7 @@ class cronjob {
 		}
 		return false;
 	} // getNextReportExecutionTime()
-	
+
 	private function checkTime($time, &$hour, &$minute) {
 		if (strpos($time, ':') !== false) {
 			// assume H:i
@@ -582,5 +581,5 @@ class cronjob {
 		}
 		return true;
 	} // checkTime()
-	
+
 } // class cronjob

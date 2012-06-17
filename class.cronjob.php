@@ -2,21 +2,39 @@
 
 /**
  * dbWatchSite
- * 
- * @author Ralf Hertsch (ralf.hertsch@phpmanufaktur.de)
+ *
+ * @author Ralf Hertsch <ralf.hertsch@phpmanufaktur.de>
  * @link http://phpmanufaktur.de
- * @copyright 2010
- * @license GNU GPL (http://www.gnu.org/licenses/gpl.html)
- * @version $Id$
+ * @copyright 2010 - 2012
+ * @license MIT License (MIT) http://www.opensource.org/licenses/MIT
  */
 
-// prevent this file from being accessed directly
-if (!defined('WB_PATH')) die('invalid call of '.$_SERVER['SCRIPT_NAME']);
+// include class.secure.php to protect this file and the whole CMS!
+if (defined('WB_PATH')) {
+  if (defined('LEPTON_VERSION'))
+    include(WB_PATH.'/framework/class.secure.php');
+}
+else {
+  $oneback = "../";
+  $root = $oneback;
+  $level = 1;
+  while (($level < 10) && (!file_exists($root.'/framework/class.secure.php'))) {
+    $root .= $oneback;
+    $level += 1;
+  }
+  if (file_exists($root.'/framework/class.secure.php')) {
+    include($root.'/framework/class.secure.php');
+  }
+  else {
+    trigger_error(sprintf("[ <b>%s</b> ] Can't include class.secure.php!", $_SERVER['SCRIPT_NAME']), E_USER_ERROR);
+  }
+}
+// end include class.secure.php
 
 require_once(WB_PATH .'/modules/'.basename(dirname(__FILE__)).'/initialize.php');
 
 class dbCronjobData extends dbConnectLE {
-	
+
 	const field_id							= 'cj_id';
 	const field_item						= 'cj_item';
 	const field_value						= 'cj_value';
@@ -25,9 +43,9 @@ class dbCronjobData extends dbConnectLE {
 	const item_last_call				= 'last_call';
 	const item_last_report			= 'last_report';
 	const item_next_report			= 'next_report';
-	
+
 	public $create_tables = false;
-	
+
 	public function __construct($create_tables=false) {
 		parent::__construct();
 		$this->create_tables = $create_tables;
@@ -46,10 +64,10 @@ class dbCronjobData extends dbConnectLE {
 					return false;
 				}
 			}
-		}	
+		}
 		return true;
 	} // __construct()
-	
+
 	/**
 	 * Return the last Call of cronjob.php as UNIX timestamp or FALSE on error
 	 * @return INT timestamp
@@ -66,17 +84,17 @@ class dbCronjobData extends dbConnectLE {
 		}
 		return false;
 	} // getLastCronjobCall()
-	
+
 } // class dbCronjobData
 
 class dbCronjobErrorLog extends dbConnectLE {
-	
+
 	const field_id						= 'cj_error_id';
 	const field_error					= 'cj_error_str';
 	const field_timestamp			= 'cj_error_stamp';
-	
+
 	public $create_tables = false;
-	
+
 	function __construct($create_tables=false) {
 		parent::__construct();
 		$this->create_tables = $create_tables;
@@ -94,10 +112,10 @@ class dbCronjobErrorLog extends dbConnectLE {
 					return false;
 				}
 			}
-		}	
+		}
 		return true;
 	} // __construct()
-	
+
 } // class dbCronjobErrorLog
 
 
